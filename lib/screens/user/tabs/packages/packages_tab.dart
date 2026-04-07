@@ -1,63 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../../widgets/gradient_container.dart';
-
-// ── Data models ────────────────────────────────────────────────────
-enum PackageStatus { active, expired, pending }
-
-class TrainingPackage {
-  final String id;
-  final String name;
-  final String emoji;
-  final int totalSessions;
-  final int usedSessions;
-  final DateTime startDate;
-  final DateTime endDate;
-  final String trainerName;
-  final PackageStatus status;
-  final double price;
-
-  const TrainingPackage({
-    required this.id,
-    required this.name,
-    required this.emoji,
-    required this.totalSessions,
-    required this.usedSessions,
-    required this.startDate,
-    required this.endDate,
-    required this.trainerName,
-    required this.status,
-    required this.price,
-  });
-
-  int get remainingSessions => totalSessions - usedSessions;
-  double get progressPercent => usedSessions / totalSessions;
-  int get daysRemaining => endDate.difference(DateTime.now()).inDays.clamp(0, 9999);
-}
-
-class PackagePlan {
-  final String name;
-  final String emoji;
-  final String sessions;
-  final String duration;
-  final double price;
-  final List<String> features;
-  final bool isPopular;
-  final bool isVip;
-  final Color accentColor;
-
-  const PackagePlan({
-    required this.name,
-    required this.emoji,
-    required this.sessions,
-    required this.duration,
-    required this.price,
-    required this.features,
-    this.isPopular = false,
-    this.isVip = false,
-    required this.accentColor,
-  });
-}
+import 'package:powergym_mobile_app/config/theme.dart';
+import 'package:powergym_mobile_app/widgets/gradient_container.dart';
+import 'package_types.dart';
 
 // ── Sample data ────────────────────────────────────────────────────
 final TrainingPackage _activePackage = TrainingPackage(

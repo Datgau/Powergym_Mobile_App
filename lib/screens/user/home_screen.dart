@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-import 'tabs/home_tab.dart';
-import 'tabs/bookings_tab.dart';
-import 'tabs/packages_tab.dart';
-import 'tabs/notifications_tab.dart';
-import 'tabs/profile_tab.dart';
+import 'tabs/home/home_tab.dart';
+import 'tabs/bookings/bookings_tab.dart';
+import 'tabs/packages/packages_tab.dart';
+import 'tabs/notifications/notifications_tab.dart';
+import 'tabs/profile/profile_tab.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});

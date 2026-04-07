@@ -41,4 +41,6 @@ class AppConstants {
   
   // Session Duration (phút)
   static const int sessionDuration = 60;
+
+  static String get apiBaseUrl => null;
 }

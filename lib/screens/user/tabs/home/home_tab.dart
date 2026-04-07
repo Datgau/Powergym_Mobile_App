@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme.dart';
-import '../../../widgets/gradient_container.dart';
+import 'package:powergym_mobile_app/config/theme.dart';
+import 'package:powergym_mobile_app/widgets/gradient_container.dart';
+
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
