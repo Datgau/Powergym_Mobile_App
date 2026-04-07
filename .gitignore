@@ -4,7 +4,41 @@ build/
 .packages
 .pub-cache/
 .pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Generated files
+*.log
+*.tmp
+*.lock
 
 # IDE
 .idea/
 *.iml
+.vscode/
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Pods/
+ios/.symlinks/
+
+# macOS
+macos/Pods/
+
+# Windows / Linux
+windows/flutter/ephemeral/
+linux/flutter/ephemeral/
+
+# Keystore (quan trọng)
+*.jks
+*.keystore
+
+# Env / secret
+.env
