@@ -1,6 +1,7 @@
 class AppConstants {
   // API Configuration
-  static const String baseUrl = 'http://localhost:8080/api';
+  // Dùng 10.0.2.2 thay cho localhost khi chạy trên Android Emulator
+  static const String baseUrl = 'http://10.0.2.2:8080/api';
   
   // Endpoints
   static const String loginEndpoint = '/auth/login';
@@ -42,5 +43,5 @@ class AppConstants {
   // Session Duration (phút)
   static const int sessionDuration = 60;
 
-  static String get apiBaseUrl => null;
+  static String get apiBaseUrl => baseUrl;
 }

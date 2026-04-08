@@ -1,83 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:powergym_mobile_app/config/theme.dart';
-import 'package:powergym_mobile_app/widgets/gradient_container.dart';
-import 'package_types.dart';
+import '../../../../config/theme.dart';
+import '../../../../widgets/gradient_container.dart';
+import '../../../../models/membership_package.dart';
+import '../../../../services/packages_service.dart';
+// Import BottomSheet chọn phương thức thanh toán đúng đường dẫn
+import '../../widgets/payment_method_bottom_sheet.dart';
 
-// ── Sample data ────────────────────────────────────────────────────
-final TrainingPackage _activePackage = TrainingPackage(
-  id: '1',
-  name: 'Gói Premium 20 buổi',
-  emoji: '🏆',
-  totalSessions: 20,
-  usedSessions: 12,
-  startDate: DateTime(2026, 1, 1),
-  endDate: DateTime(2026, 6, 30),
-  trainerName: 'PT. Nguyễn Văn B',
-  status: PackageStatus.active,
-  price: 3800000,
-);
-
-final List<PackagePlan> _plans = [
-  PackagePlan(
-    name: 'Gói Starter',
-    emoji: '🌱',
-    sessions: '5 buổi',
-    duration: '1 tháng',
-    price: 1200000,
-    features: ['Chọn PT tự do', 'Đặt lịch linh hoạt'],
-    accentColor: const Color(0xFF059669),
-  ),
-  PackagePlan(
-    name: 'Gói Gold',
-    emoji: '🏆',
-    sessions: '20 buổi',
-    duration: '6 tháng',
-    price: 3800000,
-    features: ['PT chuyên biệt', 'Tư vấn dinh dưỡng', 'Đo lường tiến độ'],
-    isPopular: true,
-    accentColor: AppTheme.primaryBlue,
-  ),
-  PackagePlan(
-    name: 'Gói Diamond VIP',
-    emoji: '💎',
-    sessions: '40 buổi',
-    duration: '12 tháng',
-    price: 6500000,
-    features: [
-      'Ưu tiên đặt lịch 24/7',
-      'Kế hoạch cá nhân hóa AI',
-      'Check-in không giới hạn',
-    ],
-    isVip: true,
-    accentColor: const Color(0xFF1A202C),
-  ),
-];
-
-final List<TrainingPackage> _history = [
-  _activePackage,
-  TrainingPackage(
-    id: '0',
-    name: 'Gói Starter 5 buổi',
-    emoji: '🌱',
-    totalSessions: 5,
-    usedSessions: 5,
-    startDate: DateTime(2025, 10, 1),
-    endDate: DateTime(2025, 10, 31),
-    trainerName: 'PT. Nguyễn Văn B',
-    status: PackageStatus.expired,
-    price: 1200000,
-  ),
-];
+// ── Hàm tiện ích chuyển đổi mã màu HEX từ Backend sang Color của Flutter ──
+Color _parseColor(String? colorHex) {
+  if (colorHex == null || colorHex.isEmpty) return AppTheme.primaryBlue;
+  try {
+    final hex = colorHex.replaceAll('#', '');
+    return Color(int.parse('FF$hex', radix: 16));
+  } catch (e) {
+    return AppTheme.primaryBlue;
+  }
+}
 
 // ── Main tab ───────────────────────────────────────────────────────
-class PackagesTab extends StatelessWidget {
+class PackagesTab extends StatefulWidget {
   const PackagesTab({super.key});
+
+  @override
+  State<PackagesTab> createState() => _PackagesTabState();
+}
+
+class _PackagesTabState extends State<PackagesTab> {
+  final PackagesService _packagesService = PackagesService();
+  late Future<List<MembershipPackage>> _packagesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Gọi API lấy danh sách gói tập đang Active từ Backend
+    _packagesFuture = _packagesService.getAvailablePackages();
+  }
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        // ── Gradient header with active package ────────────────────
+        // ── Gradient header with active package ────
         SliverToBoxAdapter(
           child: GradientContainer(
             child: SafeArea(
@@ -87,7 +50,6 @@ class PackagesTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title + status badge
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -103,9 +65,11 @@ class PackagesTab extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-
-                    // Active package card
-                    _ActivePackageCard(package: _activePackage),
+                    // Có thể thay thế bằng dữ liệu Gói đang dùng thực tế của User sau này
+                    const Text(
+                      'Bạn chưa có gói tập nào đang hoạt động.',
+                      style: TextStyle(color: Colors.white70),
+                    )
                   ],
                 ),
               ),
@@ -113,67 +77,66 @@ class PackagesTab extends StatelessWidget {
           ),
         ),
 
-        // ── Body ───────────────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: Container(
-            color: const Color(0xFFF5F7FB),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Renewal reminder banner
-                  _RenewalBanner(package: _activePackage),
-                  const SizedBox(height: 20),
-
-                  // Shop section
-                  _SectionHeader(
-                    title: 'Mua gói tập mới',
-                    actionLabel: 'Xem tất cả',
-                    onAction: () {},
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Starter + Gold row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _PlanCard(plan: _plans[0])),
-                      const SizedBox(width: 10),
-                      Expanded(child: _PlanCard(plan: _plans[1])),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Diamond VIP full-width
-                  _PlanCardWide(plan: _plans[2]),
-                  const SizedBox(height: 20),
-
-                  // History section
-                  _SectionHeader(
-                    title: 'Lịch sử mua gói',
-                    actionLabel: 'Xem tất cả',
-                    onAction: () {},
-                  ),
-                  const SizedBox(height: 12),
-                  ..._history.map(
-                    (pkg) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _HistoryCard(package: pkg),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
+        // ── Section header ─────────────────────────────────────────────────
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+            child: _SectionHeader(title: 'Mua gói tập mới'),
           ),
         ),
+
+        // ── Danh sách gói tập (Gọi từ API) ─────────────────────────────────
+        SliverToBoxAdapter(
+          child: FutureBuilder<List<MembershipPackage>>(
+            future: _packagesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              } else if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Center(
+                      child: Text('Lỗi: ${snapshot.error}', style: const TextStyle(color: Colors.red))
+                  ),
+                );
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Center(child: Text('Hiện không có gói tập nào.')),
+                );
+              }
+
+              final packages = snapshot.data!;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: packages.map((package) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      // Tự động render Gói VIP hoặc Gói Thường dựa trên mức giá
+                      child: package.price > 5000000
+                          ? _PlanCardWide(package: package)
+                          : _PlanCard(package: package),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // Tăng khoảng trống ở cuối để không bị BottomNavigationBar che khuất
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
     );
   }
 }
 
-// ── Active badge ───────────────────────────────────────────────────
+// ── Các Component phụ trợ ─────────
 class _ActiveBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -210,309 +173,32 @@ class _ActiveBadge extends StatelessWidget {
   }
 }
 
-// ── Active package card ────────────────────────────────────────────
-class _ActivePackageCard extends StatelessWidget {
-  final TrainingPackage package;
-  const _ActivePackageCard({required this.package});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Gold badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFD700).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: const Color(0xFFFFD700).withOpacity(0.4),
-              ),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('★ ', style: TextStyle(color: Color(0xFFFFD700), fontSize: 12)),
-                Text(
-                  'GÓI GOLD — ĐANG DÙNG',
-                  style: TextStyle(
-                    color: Color(0xFFFFD700),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            package.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Có hiệu lực đến ${_fmt(package.endDate)} · ${package.trainerName}',
-            style: const TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 14),
-          // Progress bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Đã sử dụng: ${package.usedSessions} buổi',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                'Còn lại: ${package.remainingSessions} buổi',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: package.progressPercent,
-              minHeight: 8,
-              backgroundColor: Colors.white.withOpacity(0.2),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF4ADE80),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          // Stats row
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                _PackageStat(
-                  value: '${package.totalSessions}',
-                  label: 'Tổng buổi',
-                ),
-                _StatDivider(),
-                _PackageStat(
-                  value: '${package.remainingSessions}',
-                  label: 'Còn lại',
-                ),
-                _StatDivider(),
-                _PackageStat(
-                  value: '${package.daysRemaining}',
-                  label: 'Ngày còn lại',
-                ),
-                _StatDivider(),
-                _PackageStat(
-                  value: '6',
-                  label: 'Tháng',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _fmt(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}
-
-class _PackageStat extends StatelessWidget {
-  final String value;
-  final String label;
-  const _PackageStat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 30,
-      color: Colors.white.withOpacity(0.08),
-    );
-  }
-}
-
-// ── Renewal banner ─────────────────────────────────────────────────
-class _RenewalBanner extends StatelessWidget {
-  final TrainingPackage package;
-  const _RenewalBanner({required this.package});
-
-  @override
-  Widget build(BuildContext context) {
-    if (package.remainingSessions > 5) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8EEF5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF9C3),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(
-              child: Text('🔔', style: TextStyle(fontSize: 22)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sắp hết buổi tập!',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A202C),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Còn ${package.remainingSessions} buổi — gia hạn ngay để không gián đoạn',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Gia hạn',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Section header ─────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  const _SectionHeader({required this.title, this.actionLabel, this.onAction});
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A202C),
-          ),
-        ),
-        if (actionLabel != null)
-          GestureDetector(
-            onTap: onAction,
-            child: Text(
-              actionLabel!,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryBlue,
-              ),
-            ),
-          ),
-      ],
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF1A202C),
+      ),
     );
   }
 }
 
-// ── Plan card (narrow — Starter / Gold) ───────────────────────────
+// ── Card hiển thị Gói Thường ───────────
 class _PlanCard extends StatelessWidget {
-  final PackagePlan plan;
-  const _PlanCard({required this.plan});
+  final MembershipPackage package;
+  const _PlanCard({required this.package});
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = _parseColor(package.color);
+
     return Stack(
       children: [
         Container(
@@ -521,50 +207,59 @@ class _PlanCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: plan.isPopular
-                  ? AppTheme.primaryBlue
-                  : const Color(0xFFE8EEF5),
-              width: plan.isPopular ? 2 : 1,
+              color: package.isPopular ? themeColor : const Color(0xFFE8EEF5),
+              width: package.isPopular ? 2 : 1,
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (plan.isPopular) const SizedBox(height: 10),
-              Text(plan.emoji, style: const TextStyle(fontSize: 24)),
+              if (package.isPopular) const SizedBox(height: 10),
+              const Text('💎', style: TextStyle(fontSize: 24)),
               const SizedBox(height: 8),
               Text(
-                plan.name,
+                package.name,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF1A202C),
                 ),
               ),
               Text(
-                '${plan.sessions} · ${plan.duration}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF6B7280),
-                ),
+                package.durationText,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
               ),
               const SizedBox(height: 10),
-              Text(
-                _fmtPrice(plan.price),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: plan.accentColor,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    package.formattedPrice,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: themeColor,
+                    ),
+                  ),
+                  if (package.originalPrice != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      package.formattedOriginalPrice,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ]
+                ],
               ),
-              const Text(
-                'đồng',
-                style: TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
-              ),
-              const SizedBox(height: 8),
-              ...plan.features.map(
-                (f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+              const SizedBox(height: 12),
+
+              // Features
+              ...package.features.map(
+                    (f) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
                       Container(
@@ -585,12 +280,12 @@ class _PlanCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           f,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Color(0xFF374151),
                           ),
                         ),
@@ -599,56 +294,57 @@ class _PlanCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  // BƯỚC 5.2: Gắn BottomSheet chọn phương thức thanh toán vào đây
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => PaymentMethodBottomSheet(package: package),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: plan.isPopular
-                        ? AppTheme.primaryBlue
-                        : const Color(0xFFE8F0FE),
-                    foregroundColor: plan.isPopular
-                        ? Colors.white
-                        : AppTheme.primaryBlue,
+                    backgroundColor: package.isPopular ? themeColor : const Color(0xFFE8F0FE),
+                    foregroundColor: package.isPopular ? Colors.white : AppTheme.primaryBlue,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: const Text(
                     'Mua ngay',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        // Popular badge
-        if (plan.isPopular)
+        // Badge Phổ biến
+        if (package.isPopular)
           Positioned(
             top: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: const BoxDecoration(
-                color: AppTheme.primaryBlue,
-                borderRadius: BorderRadius.only(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: themeColor,
+                borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(16),
                   bottomLeft: Radius.circular(10),
                 ),
               ),
               child: const Text(
-                'Phổ biến',
+                'PHỔ BIẾN',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -658,251 +354,156 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-// ── Plan card wide (Diamond VIP) ───────────────────────────────────
+// ── Card hiển thị Gói VIP ──────────────
 class _PlanCardWide extends StatelessWidget {
-  final PackagePlan plan;
-  const _PlanCardWide({required this.plan});
+  final MembershipPackage package;
+  const _PlanCardWide({required this.package});
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = _parseColor(package.color);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8EEF5)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE8EEF5)),
+          boxShadow: [
+            BoxShadow(
+              color: themeColor.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(plan.emoji, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(width: 8),
-                    Text(
-                      plan.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1A202C),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A202C),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'VIP',
-                        style: TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Trái: Thông tin
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      const Text('👑', style: TextStyle(fontSize: 20)),
+                      Text(
+                        package.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1A202C),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${plan.sessions} · ${plan.duration} · Không giới hạn PT',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...plan.features.map(
-                  (f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
-                            borderRadius: BorderRadius.circular(4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A202C),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'VIP',
+                          style: TextStyle(
+                            color: Color(0xFFFFD700),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
                           ),
-                          child: const Center(
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    package.durationText,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                  ),
+                  const SizedBox(height: 8),
+                  ...package.features.take(2).map(
+                        (f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle, size: 14, color: Color(0xFF15803D)),
+                          const SizedBox(width: 6),
+                          Expanded(
                             child: Text(
-                              '✓',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Color(0xFF15803D),
-                                fontWeight: FontWeight.w700,
-                              ),
+                              f,
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF374151)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          f,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF374151),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Right: price + button
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _fmtPrice(plan.price),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primaryBlue,
-                ),
-              ),
-              const Text(
-                'đồng',
-                style: TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryBlue,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 9,
-                  ),
-                ),
-                child: const Text(
-                  'Nâng cấp',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── History card ───────────────────────────────────────────────────
-class _HistoryCard extends StatelessWidget {
-  final TrainingPackage package;
-  const _HistoryCard({required this.package});
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = package.status == PackageStatus.active;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8EEF5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? const Color(0xFFE8F0FE)
-                  : const Color(0xFFF0F4F8),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                package.emoji,
-                style: const TextStyle(fontSize: 20),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 8),
+            // Phải: Giá + Nút
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  package.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A202C),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      package.formattedPrice,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: themeColor,
+                      ),
+                    ),
+                    if (package.originalPrice != null) ...[
+                      Text(
+                        package.formattedOriginalPrice,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${_fmt(package.startDate)} → ${_fmt(package.endDate)}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => PaymentMethodBottomSheet(package: package),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themeColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    minimumSize: const Size(80, 36),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  child: const Text(
+                    'Nâng cấp',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${_fmtPrice(package.price)}đ',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.primaryBlue,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                isActive ? 'Đang dùng' : 'Đã hết hạn',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isActive
-                      ? const Color(0xFF15803D)
-                      : const Color(0xFF6B7280),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
-  String _fmt(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}
-
-// ── Helpers ────────────────────────────────────────────────────────
-String _fmtPrice(double price) {
-  final parts = price.toInt().toString().split('').reversed.toList();
-  final result = <String>[];
-  for (var i = 0; i < parts.length; i++) {
-    if (i > 0 && i % 3 == 0) result.add('.');
-    result.add(parts[i]);
-  }
-  return result.reversed.join();
 }
