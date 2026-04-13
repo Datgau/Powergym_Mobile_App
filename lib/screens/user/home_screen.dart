@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../features/home/providers/home_provider.dart';
 import 'tabs/home/home_tab.dart';
 import 'tabs/bookings/bookings_tab.dart';
 import 'tabs/packages/packages_tab.dart';
@@ -8,14 +10,23 @@ import 'tabs/profile/profile_tab.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
-  
+
   @override
   State<UserHomeScreen> createState() => _UserHomeScreenState();
 }
 
 class _UserHomeScreenState extends State<UserHomeScreen> {
   int _selectedIndex = 0;
-  
+
+  @override
+  void initState() {
+    super.initState();
+    // Load all home data once when screen mounts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeProvider>().loadAll();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

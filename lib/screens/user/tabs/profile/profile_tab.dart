@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
 import 'package:powergym_mobile_app/widgets/gradient_container.dart';
+import '../../../../features/home/providers/home_provider.dart';
+import '../../../../features/auth/providers/auth_provider.dart';
+import '../../../../features/auth/screens/login_screen.dart';
 import 'profile_types.dart';
 
-// ── Sample data ────────────────────────────────────────────────────
-final _profile = UserProfile(
-  fullName: 'Nguyễn Văn A',
-  email: 'nguyenvana@gmail.com',
-  phone: '0901 234 567',
-  membershipTier: 'Gold Member',
-  memberSince: DateTime(2026, 1, 1),
-  totalSessions: 32,
-  weekStreak: 8,
-  trainerRating: 4.8,
-  weightGoalKg: 12,
-  currentWeightKg: 75,
-  heightCm: 170,
+// ── Default profile (fallback) ─────────────────────────────────────
+final _defaultProfile = UserProfile(
+  fullName: 'Loading...',
+  email: '',
+  phone: '',
+  membershipTier: 'Member',
+  memberSince: DateTime.now(),
+  totalSessions: 0,
+  weekStreak: 0,
+  trainerRating: 0,
+  weightGoalKg: 0,
+  currentWeightKg: 0,
+  heightCm: 0,
 );
 
 const _achievements = [
@@ -53,17 +57,46 @@ class ProfileTab extends StatefulWidget {
 class _ProfileTabState extends State<ProfileTab> {
   bool _notificationsEnabled = true;
 
+  Future<void> _logout() async {
+    await context.read<AuthProvider>().logout();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthLoginScreen()),
+        (_) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final homeProvider = context.watch<HomeProvider>();
+    final apiProfile = homeProvider.profile;
+
+    // Map API data to local UserProfile type (keep existing UI unchanged)
+    final profile = apiProfile != null
+        ? UserProfile(
+            fullName: apiProfile.fullName,
+            email: apiProfile.email,
+            phone: apiProfile.phoneNumber ?? '',
+            membershipTier: apiProfile.role == 'TRAINER' ? 'Trainer' : 'Member',
+            memberSince: DateTime.now(),
+            totalSessions: 0,
+            weekStreak: 0,
+            trainerRating: 0,
+            weightGoalKg: 0,
+            currentWeightKg: 0,
+            heightCm: 0,
+          )
+        : _defaultProfile;
+
     return CustomScrollView(
       slivers: [
         // ── Hero header ────────────────────────────────────────────
         SliverToBoxAdapter(
           child: _ProfileHero(
-            profile: _profile,
-            onEditTap: () {
-              // TODO: navigate to edit profile
-            },
+            profile: profile,
+            onEditTap: () {},
           ),
         ),
 
@@ -97,7 +130,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       iconEmoji: '🎯',
                       iconBg: const Color(0xFFE8FCE8),
                       label: 'Mục tiêu tập luyện',
-                      subtitle: 'Giảm cân · ${_profile.weightGoalKg.toInt()}kg · 6 tháng',
+                      subtitle: 'Giảm cân · ${profile.weightGoalKg.toInt()}kg · 6 tháng',
                       onTap: () {},
                     ),
                     _MenuItem(
@@ -105,7 +138,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       iconBg: const Color(0xFFFEF5E8),
                       label: 'Chỉ số cơ thể',
                       subtitle:
-                          '${_profile.currentWeightKg.toInt()}kg · ${_profile.heightCm.toInt()}cm · BMI ${_profile.bmi.toStringAsFixed(1)}',
+                          '${profile.currentWeightKg.toInt()}kg · ${profile.heightCm.toInt()}cm · BMI ${profile.bmi.toStringAsFixed(1)}',
                       trailing: const _BlueBadge(label: 'Cập nhật'),
                       onTap: () {},
                     ),
@@ -181,9 +214,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
                 // Logout
                 _LogoutButton(
-                  onTap: () {
-                    // TODO: logout logic
-                  },
+                  onTap: _logout,
                 ),
               ],
             ),
