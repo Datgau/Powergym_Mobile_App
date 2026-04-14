@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
+import '../../../features/trainer/shell/trainer_shell.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -33,8 +34,15 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
     final ok = await provider.login(_emailCtrl.text.trim(), _passwordCtrl.text);
 
     if (ok && mounted) {
-      // Navigate to main app — replace with your actual home route
-      Navigator.pushReplacementNamed(context, '/home');
+      final role = context.read<AuthProvider>().currentUser?.role.toUpperCase() ?? '';
+      if (role == 'TRAINER') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TrainerShell()),
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     }
   }
 

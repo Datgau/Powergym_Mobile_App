@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../storage/auth_storage.dart';
+import 'app_navigator.dart';
 
 class Api {
   Api._();
@@ -59,7 +60,7 @@ class Api {
       }
       switch (e.response?.statusCode) {
         case 400: return 'Invalid request. Please check your input.';
-        case 401: return 'Invalid credentials. Please try again.';
+        case 401: return 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
         case 403: return 'Access denied.';
         case 404: return 'Resource not found.';
         case 500: return 'Server error. Please try again later.';
@@ -90,5 +91,15 @@ class _AuthInterceptor extends Interceptor {
       options.headers['Authorization'] = 'Bearer $token';
     }
     handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (err.response?.statusCode == 401) {
+      // Token hết hạn hoặc không hợp lệ → clear session và về login
+      await _storage.clearSession();
+      AppNavigator.goToLogin();
+    }
+    handler.next(err);
   }
 }
