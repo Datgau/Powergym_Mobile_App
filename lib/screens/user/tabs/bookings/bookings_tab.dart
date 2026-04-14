@@ -440,140 +440,190 @@ class _SectionHeader extends StatelessWidget {
 }
 
 // ── Booking Card ──────────────────────────────────────────────────
-class _BookingCard extends StatelessWidget {
-  final String trainerName;
-  final String specialty;
-  final String date;
-  final String time;
-  final String status;
-  final Color statusColor;
-  final String avatarEmoji;
+class _BookingCard extends StatefulWidget {
+  final TrainerBooking booking;
+  final VoidCallback onRefresh; // Thêm callback để load lại danh sách khi hủy thành công
 
-  const _BookingCard({
-    required this.trainerName,
-    required this.specialty,
-    required this.date,
-    required this.time,
-    required this.status,
-    required this.statusColor,
-    required this.avatarEmoji,
-  });
+  const _BookingCard({required this.booking, required this.onRefresh});
+
+  @override
+  State<_BookingCard> createState() => _BookingCardState();
+}
+
+class _BookingCardState extends State<_BookingCard> {
+  bool _isCancelling = false;
+
+  // Chuyển đổi trạng thái thành màu sắc
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'PENDING': return Colors.orange;
+      case 'CONFIRMED': return Colors.green;
+      case 'CANCELLED': case 'REJECTED': return Colors.red;
+      case 'COMPLETED': return Colors.blue;
+      default: return Colors.grey;
+    }
+  }
+
+  // Định dạng lại ngày giờ
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  // Logic hiển thị Popup xác nhận hủy
+  Future<void> _showCancelDialog(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận hủy'),
+        content: const Text('Bạn có chắc chắn muốn hủy lịch hẹn PT này không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Không', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hủy lịch', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _cancelBooking();
+    }
+  }
+
+  // Gọi API Hủy lịch
+  Future<void> _cancelBooking() async {
+    setState(() => _isCancelling = true);
+    try {
+      final storage = StorageService();
+      final userId = await storage.getUserId();
+      if (userId == null) throw Exception("Lỗi: Không tìm thấy User ID");
+
+      final success = await BookingsService().cancelBooking(widget.booking.id.toString(), userId);
+      
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã hủy lịch thành công!'), backgroundColor: Colors.green),
+        );
+        widget.onRefresh(); // Gọi hàm load lại danh sách của thẻ cha
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = _getStatusColor(widget.booking.status);
+    final trainerName = widget.booking.trainer?.fullName ?? 'Đang chờ Admin xếp PT';
+    final serviceName = widget.booking.service?.name ?? 'Dịch vụ Gym';
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8EEF5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ]
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          // Avatar
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: AppTheme.brandGradient,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Text(avatarEmoji, style: const TextStyle(fontSize: 22)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  trainerName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A202C),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar giả lập
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.brandGradient,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  specialty,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: const Center(
+                  child: Icon(Icons.person, color: Colors.white, size: 28),
                 ),
-                const SizedBox(height: 8),
-                Row(
+              ),
+              const SizedBox(width: 14),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      size: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                    const SizedBox(width: 4),
                     Text(
-                      date,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6B7280),
+                      trainerName,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A202C)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      serviceName,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 14, color: Color(0xFF6B7280)),
+                        const SizedBox(width: 4),
+                        Text(_formatDate(widget.booking.bookingDate), style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.access_time, size: 14, color: Color(0xFF6B7280)),
+                        const SizedBox(width: 4),
+                        Text('${widget.booking.startTime.substring(0,5)} - ${widget.booking.endTime.substring(0,5)}', style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(
-                      Icons.access_time,
-                      size: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      time,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6B7280),
+                      child: Text(
+                        widget.booking.statusText,
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: statusColor),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
+              ),
+            ],
+          ),
+          
+          // ── NÚT HỦY LỊCH (Chỉ hiện khi trạng thái là PENDING) ──
+          if (widget.booking.status == 'PENDING') ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _isCancelling 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : TextButton.icon(
+                    onPressed: () => _showCancelDialog(context),
+                    icon: const Icon(Icons.cancel_outlined, size: 16, color: Colors.red),
+                    label: const Text('Hủy lịch', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Chevron
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F4F8),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: Color(0xFF6B7280),
-            ),
-          ),
+            )
+          ]
         ],
       ),
     );
