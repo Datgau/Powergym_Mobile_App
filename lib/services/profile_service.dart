@@ -1,12 +1,12 @@
-import 'api_client.dart';
+import 'package:powergym_mobile_app/core/network/api.dart';
 
 class ProfileService {
-  final ApiClient _apiClient = ApiClient();
+  
 
   // Get user profile
   Future<Map<String, dynamic>> getUserProfile(String userId) async {
     try {
-      final response = await _apiClient.get('/users/$userId/profile');
+      final response = await Api.private.get('/users/$userId/profile');
       return response.data;
     } catch (e) {
       throw Exception('Error fetching user profile: $e');
@@ -19,7 +19,7 @@ class ProfileService {
     required Map<String, dynamic> profileData,
   }) async {
     try {
-      final response = await _apiClient.put(
+      final response = await Api.private.put(
         '/users/$userId/profile',
         data: profileData,
       );
@@ -32,7 +32,7 @@ class ProfileService {
   // Get user achievements
   Future<List<Map<String, dynamic>>> getUserAchievements(String userId) async {
     try {
-      final response = await _apiClient.get('/users/$userId/achievements');
+      final response = await Api.private.get('/users/$userId/achievements');
       final data = response.data;
       return List<Map<String, dynamic>>.from(data['achievements'] ?? []);
     } catch (e) {
@@ -43,7 +43,7 @@ class ProfileService {
   // Get favorite trainers
   Future<List<Map<String, dynamic>>> getFavoriteTrainers(String userId) async {
     try {
-      final response = await _apiClient.get('/users/$userId/trainers/favorites');
+      final response = await Api.private.get('/users/$userId/trainers/favorites');
       final data = response.data;
       return List<Map<String, dynamic>>.from(data['trainers'] ?? []);
     } catch (e) {
@@ -58,7 +58,7 @@ class ProfileService {
     required double height,
   }) async {
     try {
-      final response = await _apiClient.put(
+      final response = await Api.private.put(
         '/users/$userId/metrics',
         data: {
           'weight': weight,
@@ -77,7 +77,7 @@ class ProfileService {
     required Map<String, dynamic> goals,
   }) async {
     try {
-      final response = await _apiClient.put(
+      final response = await Api.private.put(
         '/users/$userId/goals',
         data: goals,
       );

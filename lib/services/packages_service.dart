@@ -1,15 +1,16 @@
+import 'package:powergym_mobile_app/core/network/api.dart';
+
 import '../models/membership_package.dart';
 import '../config/constants.dart';
-import 'api_client.dart';
 
 class PackagesService {
-  final ApiClient _apiClient = ApiClient();
+  
 
   // 1. Lấy danh sách các gói tập đang hoạt động (Hiển thị cho User mua)
   Future<List<MembershipPackage>> getAvailablePackages() async {
     try {
       // Gọi API sử dụng endpoint '/membership-packages/active' từ AppConstants
-      final response = await _apiClient.get(AppConstants.membershipPackagesEndpoint);
+      final response = await Api.private.get(AppConstants.membershipPackagesEndpoint);
 
       // Spring Boot Backend trả về class ApiResponse chứa trường 'data'
       final List<dynamic> dataList = response.data['data'] ?? [];
@@ -24,7 +25,7 @@ class PackagesService {
   // 2. Lấy danh sách các gói tập mà User đang sở hữu (Đã mua)
   Future<List<Map<String, dynamic>>> getUserPackages(String userId) async {
     try {
-      final response = await _apiClient.get('/users/$userId/packages');
+      final response = await Api.private.get('/users/$userId/packages');
       final data = response.data;
       return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
@@ -39,7 +40,7 @@ class PackagesService {
     required String paymentMethod,
   }) async {
     try {
-      final response = await _apiClient.post(
+      final response = await Api.private.post(
         '/packages/purchase',
         data: {
           'userId': userId,
@@ -56,7 +57,7 @@ class PackagesService {
   // 4. Lịch sử mua gói
   Future<List<Map<String, dynamic>>> getPackageHistory(String userId) async {
     try {
-      final response = await _apiClient.get('/users/$userId/packages/history');
+      final response = await Api.private.get('/users/$userId/packages/history');
       final data = response.data;
       return List<Map<String, dynamic>>.from(data['data'] ?? []);
     } catch (e) {
@@ -70,7 +71,7 @@ class PackagesService {
     required String packageId,
   }) async {
     try {
-      final response = await _apiClient.post(
+      final response = await Api.private.post(
         '/packages/renew',
         data: {
           'userId': userId,

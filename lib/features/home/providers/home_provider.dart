@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:powergym_mobile_app/core/network/api.dart';
 import '../data/models/home_models.dart';
 import '../data/services/home_api_service.dart';
-import '../../../services/api.dart';
 
 enum HomeStatus { idle, loading, loaded, error }
 

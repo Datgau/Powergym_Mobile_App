@@ -1,21 +1,28 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import '../features/shared/storage/auth_storage.dart';
+import '../storage/auth_storage.dart';
+
 class Api {
   Api._();
+
   static const String baseUrl = kIsWeb
       ? 'http://localhost:8080/api'
-      : 'http://192.168.1.11:8080/api';
+      : 'http://10.0.2.2:8080/api';
+
   static const Duration _connectTimeout = Duration(seconds: 15);
   static const Duration _receiveTimeout = Duration(seconds: 20);
-  static final Dio public = _buildDio(withAuth: false);
 
-  /// Private client — injects Bearer token automatically.
-  static final Dio private = _buildDio(withAuth: true);
+  // ─── Dio instances ────────────────────────────────────────────────────────
+
+  /// No auth header — for login, register, public endpoints.
+  static final Dio public = _build(withAuth: false);
+
+  /// Injects Bearer token automatically from AuthStorage.
+  static final Dio private = _build(withAuth: true);
 
   // ─── Factory ──────────────────────────────────────────────────────────────
 
-  static Dio _buildDio({required bool withAuth}) {
+  static Dio _build({required bool withAuth}) {
     final dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
@@ -28,9 +35,7 @@ class Api {
       ),
     );
 
-    if (withAuth) {
-      dio.interceptors.add(_AuthInterceptor());
-    }
+    if (withAuth) dio.interceptors.add(_AuthInterceptor());
 
     if (kDebugMode) {
       dio.interceptors.add(LogInterceptor(
@@ -44,9 +49,8 @@ class Api {
     return dio;
   }
 
-  // ─── Error parser ─────────────────────────────────────────────────────────
+  // ─── Error helper ─────────────────────────────────────────────────────────
 
-  /// Extracts a human-readable message from any Dio or generic error.
   static String parseError(Object e) {
     if (e is DioException) {
       final data = e.response?.data;
@@ -54,16 +58,11 @@ class Api {
         return data['message'] as String;
       }
       switch (e.response?.statusCode) {
-        case 400:
-          return 'Invalid request. Please check your input.';
-        case 401:
-          return 'Invalid credentials. Please try again.';
-        case 403:
-          return 'Access denied.';
-        case 404:
-          return 'Resource not found.';
-        case 500:
-          return 'Server error. Please try again later.';
+        case 400: return 'Invalid request. Please check your input.';
+        case 401: return 'Invalid credentials. Please try again.';
+        case 403: return 'Access denied.';
+        case 404: return 'Resource not found.';
+        case 500: return 'Server error. Please try again later.';
         default:
           if (e.type == DioExceptionType.connectionTimeout ||
               e.type == DioExceptionType.receiveTimeout) {

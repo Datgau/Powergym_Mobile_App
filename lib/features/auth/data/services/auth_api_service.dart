@@ -1,4 +1,4 @@
-import '../../../../services/api.dart';
+import 'package:powergym_mobile_app/core/network/api.dart';
 import '../models/auth_models.dart';
 
 /// Auth-specific API calls — uses the shared Api.public Dio instance.

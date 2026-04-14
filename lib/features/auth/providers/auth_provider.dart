@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../../../services/api.dart';
+import 'package:powergym_mobile_app/core/network/api.dart';
 import '../data/models/auth_models.dart';
 import '../data/services/auth_api_service.dart';
-import '../../shared/storage/auth_storage.dart';
+import 'package:powergym_mobile_app/core/storage/auth_storage.dart';
 
 enum AuthStatus { idle, loading, success, error }
 

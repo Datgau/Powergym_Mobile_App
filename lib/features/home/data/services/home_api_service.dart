@@ -1,5 +1,5 @@
-import '../../../../services/api.dart';
-import '../../../shared/storage/auth_storage.dart';
+import 'package:powergym_mobile_app/core/network/api.dart';
+import 'package:powergym_mobile_app/core/storage/auth_storage.dart';
 import '../models/home_models.dart';
 
 class HomeApiService {
