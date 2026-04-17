@@ -53,6 +53,9 @@ class LoginResponse {
   final String fullName;
   final String? avatar;
   final String accessToken;
+  /// Refresh token — backend lưu trong DB, trả về qua response body khi login.
+  /// Dùng để tự động gia hạn access token khi hết hạn.
+  final String? refreshToken;
 
   const LoginResponse({
     required this.id,
@@ -61,10 +64,11 @@ class LoginResponse {
     required this.fullName,
     this.avatar,
     required this.accessToken,
+    this.refreshToken,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
-    // Backend trả: { ..., "token": { "accessToken": "...", "expiresIn": 1800 } }
+    // Backend trả: { ..., "token": { "accessToken": "...", "expiresIn": 1800 }, "refreshToken": "..." }
     final token = json['token'] as Map<String, dynamic>? ?? {};
     return LoginResponse(
       id: json['id'] as int,
@@ -73,6 +77,7 @@ class LoginResponse {
       fullName: json['fullName'] as String,
       avatar: json['avatar'] as String?,
       accessToken: token['accessToken'] as String? ?? '',
+      refreshToken: json['refreshToken'] as String?,
     );
   }
 }

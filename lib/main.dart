@@ -7,6 +7,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/providers/home_provider.dart';
 import 'features/home/screens/home_screen.dart';
+import 'features/trainer/providers/trainer_notification_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,7 @@ class PowerGymApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProvider(create: (_) => TrainerNotificationProvider()),
       ],
       child: MaterialApp(
         title: 'PowerGym',

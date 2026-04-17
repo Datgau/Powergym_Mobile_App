@@ -2,15 +2,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// ─── Auth session storage ─────────────────────────────────────────────────────
 ///
-/// Stores the access token and basic user info after login.
+/// Stores the access token, refresh token, and basic user info after login.
 /// Uses prefixed keys to avoid conflicts with other storage.
 class AuthStorage {
-  static const _keyToken    = 'auth_token';
-  static const _keyUserId   = 'auth_user_id';
-  static const _keyRole     = 'auth_role';
-  static const _keyFullName = 'auth_full_name';
-  static const _keyEmail    = 'auth_email';
-  static const _keyAvatar   = 'auth_avatar';
+  static const _keyToken        = 'auth_token';
+  static const _keyRefreshToken = 'auth_refresh_token';
+  static const _keyUserId       = 'auth_user_id';
+  static const _keyRole         = 'auth_role';
+  static const _keyFullName     = 'auth_full_name';
+  static const _keyEmail        = 'auth_email';
+  static const _keyAvatar       = 'auth_avatar';
 
   Future<void> saveSession({
     required String accessToken,
@@ -19,6 +20,7 @@ class AuthStorage {
     required String fullName,
     required String email,
     String? avatar,
+    String? refreshToken,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyToken,    accessToken);
@@ -27,21 +29,38 @@ class AuthStorage {
     await prefs.setString(_keyFullName, fullName);
     await prefs.setString(_keyEmail,    email);
     if (avatar != null) await prefs.setString(_keyAvatar, avatar);
+    if (refreshToken != null) {
+      await prefs.setString(_keyRefreshToken, refreshToken);
+    }
   }
 
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    for (final key in [_keyToken, _keyUserId, _keyRole, _keyFullName, _keyEmail, _keyAvatar]) {
+    for (final key in [
+      _keyToken, _keyRefreshToken, _keyUserId,
+      _keyRole, _keyFullName, _keyEmail, _keyAvatar,
+    ]) {
       await prefs.remove(key);
     }
   }
 
-  Future<String?> getToken()    async => (await SharedPreferences.getInstance()).getString(_keyToken);
-  Future<String?> getUserId()   async => (await SharedPreferences.getInstance()).getString(_keyUserId);
-  Future<String?> getRole()     async => (await SharedPreferences.getInstance()).getString(_keyRole);
-  Future<String?> getFullName() async => (await SharedPreferences.getInstance()).getString(_keyFullName);
-  Future<String?> getEmail()    async => (await SharedPreferences.getInstance()).getString(_keyEmail);
-  Future<String?> getAvatar()   async => (await SharedPreferences.getInstance()).getString(_keyAvatar);
+  Future<void> updateAccessToken(String newToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyToken, newToken);
+  }
+
+  Future<void> updateRefreshToken(String newRefreshToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyRefreshToken, newRefreshToken);
+  }
+
+  Future<String?> getToken()        async => (await SharedPreferences.getInstance()).getString(_keyToken);
+  Future<String?> getRefreshToken() async => (await SharedPreferences.getInstance()).getString(_keyRefreshToken);
+  Future<String?> getUserId()       async => (await SharedPreferences.getInstance()).getString(_keyUserId);
+  Future<String?> getRole()         async => (await SharedPreferences.getInstance()).getString(_keyRole);
+  Future<String?> getFullName()     async => (await SharedPreferences.getInstance()).getString(_keyFullName);
+  Future<String?> getEmail()        async => (await SharedPreferences.getInstance()).getString(_keyEmail);
+  Future<String?> getAvatar()       async => (await SharedPreferences.getInstance()).getString(_keyAvatar);
 
   Future<bool> isLoggedIn() async {
     final token = await getToken();

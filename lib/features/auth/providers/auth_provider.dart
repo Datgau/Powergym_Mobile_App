@@ -72,6 +72,7 @@ class AuthProvider extends ChangeNotifier {
         fullName: user.fullName,
         email: user.email,
         avatar: user.avatar,
+        refreshToken: user.refreshToken,
       );
 
       _currentUser = user;
