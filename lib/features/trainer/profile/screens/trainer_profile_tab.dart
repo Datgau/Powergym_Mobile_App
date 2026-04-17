@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
 import 'package:powergym_mobile_app/widgets/gradient_container.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../trainer/providers/trainer_notification_provider.dart';
 
 class TrainerProfileTab extends StatelessWidget {
   const TrainerProfileTab({super.key});
@@ -155,6 +156,10 @@ class _LogoutButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: () async {
+          // Ngắt WebSocket trước khi logout
+          try {
+            context.read<TrainerNotificationProvider>().disconnect();
+          } catch (_) {}
           await context.read<AuthProvider>().logout();
           if (context.mounted) {
             Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);

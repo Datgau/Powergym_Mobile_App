@@ -68,7 +68,7 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                             ],
                           ),
                           GestureDetector(
-                            onTap: () => widget.onTabChange(4),
+                            onTap: () => widget.onTabChange(5),
                             child: Container(
                               width: 52, height: 52,
                               decoration: BoxDecoration(
@@ -125,7 +125,7 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                           _EarningsCard(
                             earnings: provider.stats.totalEarnings,
                             rating: provider.stats.averageRating,
-                            onTap: () => widget.onTabChange(3),
+                            onTap: () => widget.onTabChange(4),
                           ),
                           const SizedBox(height: 24),
 
@@ -136,7 +136,7 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                               const SizedBox(width: 12),
                               Expanded(child: _QuickAction(icon: Icons.calendar_month_rounded, label: 'Lịch tập', color: AppTheme.primaryBlue, onTap: () => widget.onTabChange(2))),
                               const SizedBox(width: 12),
-                              Expanded(child: _QuickAction(icon: Icons.account_balance_wallet_rounded, label: 'Thu nhập', color: const Color(0xFF059669), onTap: () => widget.onTabChange(3))),
+                              Expanded(child: _QuickAction(icon: Icons.account_balance_wallet_rounded, label: 'Thu nhập', color: const Color(0xFF059669), onTap: () => widget.onTabChange(4))),
                             ],
                           ),
                           const SizedBox(height: 24),
@@ -148,7 +148,7 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                               countColor: AppTheme.warning),
                           const SizedBox(height: 12),
                           if (provider.pendingBookings.isEmpty)
-                            const _EmptyCard(emoji: '✅', message: 'Không có yêu cầu nào đang chờ')
+                            const _EmptyCard(emoji: '', message: 'Không có yêu cầu nào đang chờ')
                           else
                             ...provider.pendingBookings.map((b) => Padding(
                                   padding: const EdgeInsets.only(bottom: 10),

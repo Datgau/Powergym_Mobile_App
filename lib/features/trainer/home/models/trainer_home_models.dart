@@ -1,5 +1,3 @@
-import '../../clients/models/client_model.dart';
-
 class TrainerDashboard {
   final TrainerStats stats;
   final List<TrainerBookingItem> pendingBookings;
@@ -81,14 +79,20 @@ class TrainerBookingItem {
       id: json['id'] as int? ?? 0,
       bookingId: json['bookingId'] as String? ?? '',
       bookingDate: json['bookingDate'] as String? ?? '',
-      startTime: json['startTime'] as String? ?? '',
-      endTime: json['endTime'] as String? ?? '',
+      startTime: _trimSeconds(json['startTime'] as String? ?? ''),
+      endTime: _trimSeconds(json['endTime'] as String? ?? ''),
       status: json['status'] as String? ?? '',
       memberName: user?['fullName'] as String?,
       memberAvatar: user?['avatar'] as String?,
       serviceName: svc?['name'] as String?,
       notes: json['notes'] as String?,
     );
+  }
+
+  /// "09:00:00" → "09:00"
+  static String _trimSeconds(String t) {
+    if (t.length == 8 && t[2] == ':' && t[5] == ':') return t.substring(0, 5);
+    return t;
   }
 
   String get statusLabel {
