@@ -1,19 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
 import 'package:powergym_mobile_app/widgets/gradient_container.dart';
+import '../models/notification_model.dart';
+import '../services/notifications_service.dart';
 
-class NotificationsTab extends StatelessWidget {
+class NotificationsTab extends StatefulWidget {
   const NotificationsTab({super.key});
-  
+
+  @override
+  State<NotificationsTab> createState() => _NotificationsTabState();
+}
+
+class _NotificationsTabState extends State<NotificationsTab> {
+  final NotificationsService _svc = NotificationsService();
+  List<AppNotification> _notifications = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final list = await _svc.getNotifications();
+      if (mounted) setState(() => _notifications = list);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    await _svc.markAllAsRead();
+    setState(() {
+      _notifications = _notifications.map((n) => AppNotification(
+        id: n.id, title: n.title, message: n.message,
+        type: n.type, isRead: true, createdAt: n.createdAt,
+        relatedId: n.relatedId, actorName: n.actorName, actorAvatar: n.actorAvatar,
+      )).toList();
+    });
+  }
+
+  Future<void> _markRead(AppNotification n) async {
+    if (n.isRead) return;
+    await _svc.markAsRead(n.id);
+    setState(() {
+      final idx = _notifications.indexWhere((x) => x.id == n.id);
+      if (idx != -1) {
+        _notifications[idx] = AppNotification(
+          id: n.id, title: n.title, message: n.message,
+          type: n.type, isRead: true, createdAt: n.createdAt,
+          relatedId: n.relatedId, actorName: n.actorName, actorAvatar: n.actorAvatar,
+        );
+      }
+    });
+  }
+
+  Future<void> _delete(AppNotification n) async {
+    await _svc.deleteNotification(n.id);
+    setState(() => _notifications.removeWhere((x) => x.id == n.id));
+  }
+
+  int get _unreadCount => _notifications.where((n) => !n.isRead).length;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.background,
       body: CustomScrollView(
         slivers: [
-          // App Bar with gradient
+          // ── Header ──────────────────────────────────────────────────────
           SliverAppBar(
-            expandedHeight: 140,
+            expandedHeight: 120,
             floating: false,
             pinned: true,
             elevation: 0,
@@ -21,36 +84,42 @@ class NotificationsTab extends StatelessWidget {
               background: GradientContainer(
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Text(
-                          'Thông báo',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Thông báo',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800)),
+                            if (_unreadCount > 0)
+                              TextButton(
+                                onPressed: _markAllRead,
+                                child: const Text('Đọc tất cả',
+                                    style: TextStyle(
+                                        color: Colors.white70, fontSize: 12)),
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            '3 thông báo mới',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                        if (_unreadCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
                             ),
+                            child: Text('$_unreadCount thông báo mới',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -58,295 +127,228 @@ class NotificationsTab extends StatelessWidget {
               ),
             ),
           ),
-          
-          // Notifications List
-          SliverPadding(
-            padding: const EdgeInsets.all(20.0),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Today Section
-                _buildSectionHeader('Hôm nay', 3),
-                const SizedBox(height: 16),
-                const NotificationCard(
-                  icon: Icons.check_circle_rounded,
-                  iconColor: AppTheme.success,
-                  iconBgColor: Color(0xFFE8F5E9),
-                  title: 'Booking đã được xác nhận',
-                  message: 'PT. Nguyễn Văn B đã xác nhận lịch tập của bạn vào 15/04/2026 lúc 09:00',
-                  time: '10 phút trước',
-                  isRead: false,
+
+          // ── Body ────────────────────────────────────────────────────────
+          if (_loading)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        color: AppTheme.error, size: 48),
+                    const SizedBox(height: 12),
+                    const Text('Không thể tải thông báo',
+                        style: TextStyle(color: AppTheme.textSecondary)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                        onPressed: _load, child: const Text('Thử lại')),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                const NotificationCard(
-                  icon: Icons.calendar_today_rounded,
-                  iconColor: AppTheme.primaryBlue,
-                  iconBgColor: Color(0xFFE3F2FD),
-                  title: 'Nhắc nhở lịch tập',
-                  message: 'Bạn có lịch tập với PT. Trần Thị C vào ngày mai lúc 14:00',
-                  time: '2 giờ trước',
-                  isRead: false,
+              ),
+            )
+          else if (_notifications.isEmpty)
+            const SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('🔔', style: TextStyle(fontSize: 48)),
+                    SizedBox(height: 12),
+                    Text('Chưa có thông báo nào',
+                        style: TextStyle(
+                            fontSize: 15, color: AppTheme.textSecondary)),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                const NotificationCard(
-                  icon: Icons.local_fire_department_rounded,
-                  iconColor: Color(0xFFFF6B35),
-                  iconBgColor: Color(0xFFFFE8E0),
-                  title: 'Streak 7 ngày! 🔥',
-                  message: 'Tuyệt vời! Bạn đã duy trì tập luyện liên tục 7 ngày. Tiếp tục phát huy nhé!',
-                  time: '5 giờ trước',
-                  isRead: false,
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) {
+                    final n = _notifications[i];
+                    return Dismissible(
+                      key: Key('notif_${n.id}'),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.delete_outline,
+                            color: Colors.white),
+                      ),
+                      onDismissed: (_) => _delete(n),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _NotificationCard(
+                          notification: n,
+                          onTap: () => _markRead(n),
+                        ),
+                      ),
+                    );
+                  },
+                  childCount: _notifications.length,
                 ),
-                
-                const SizedBox(height: 32),
-                
-                // Yesterday Section
-                _buildSectionHeader('Hôm qua', 0),
-                const SizedBox(height: 16),
-                const NotificationCard(
-                  icon: Icons.payment_rounded,
-                  iconColor: AppTheme.success,
-                  iconBgColor: Color(0xFFE8F5E9),
-                  title: 'Thanh toán thành công',
-                  message: 'Bạn đã thanh toán thành công gói tập Premium 3 tháng',
-                  time: '1 ngày trước',
-                  isRead: true,
-                ),
-                const SizedBox(height: 12),
-                const NotificationCard(
-                  icon: Icons.star_rounded,
-                  iconColor: AppTheme.warning,
-                  iconBgColor: Color(0xFFFFF8E1),
-                  title: 'Đánh giá buổi tập',
-                  message: 'Hãy đánh giá buổi tập với PT. Nguyễn Văn B để giúp chúng tôi cải thiện dịch vụ',
-                  time: '1 ngày trước',
-                  isRead: true,
-                ),
-                const SizedBox(height: 12),
-                const NotificationCard(
-                  icon: Icons.cancel_rounded,
-                  iconColor: AppTheme.error,
-                  iconBgColor: Color(0xFFFFEBEE),
-                  title: 'Booking bị hủy',
-                  message: 'PT. Lê Văn D đã hủy lịch tập vào 12/04/2026 do lý do cá nhân',
-                  time: '2 ngày trước',
-                  isRead: true,
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Empty state or load more
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Tải thêm thông báo'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.primaryBlue,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildSectionHeader(String title, int unreadCount) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primaryBlue, AppTheme.secondaryBlue],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.textPrimary,
-            letterSpacing: -0.3,
-          ),
-        ),
-        if (unreadCount > 0) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$unreadCount',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
               ),
             ),
-          ),
         ],
-      ],
+      ),
     );
   }
 }
 
-class NotificationCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBgColor;
-  final String title;
-  final String message;
-  final String time;
-  final bool isRead;
-  
-  const NotificationCard({
-    super.key,
-    required this.icon,
-    required this.iconColor,
-    required this.iconBgColor,
-    required this.title,
-    required this.message,
-    required this.time,
-    this.isRead = false,
-  });
-  
+// ── Notification Card ─────────────────────────────────────────────────────────
+class _NotificationCard extends StatelessWidget {
+  final AppNotification notification;
+  final VoidCallback onTap;
+
+  const _NotificationCard({required this.notification, required this.onTap});
+
+  static const _typeConfig = {
+    'BOOKING_CONFIRMED':   (Icons.check_circle_rounded,   Color(0xFF059669), Color(0xFFDCFCE7)),
+    'BOOKING_REJECTED':    (Icons.cancel_rounded,          Color(0xFFDC2626), Color(0xFFFFEBEE)),
+    'BOOKING_CANCELLED':   (Icons.event_busy_rounded,      Color(0xFFD97706), Color(0xFFFFF8E1)),
+    'BOOKING_COMPLETED':   (Icons.emoji_events_rounded,    Color(0xFF7C3AED), Color(0xFFF3E8FF)),
+    'BOOKING_REMINDER':    (Icons.alarm_rounded,           Color(0xFF0284C7), Color(0xFFE0F2FE)),
+    'PAYMENT_SUCCESS':     (Icons.payment_rounded,         Color(0xFF059669), Color(0xFFDCFCE7)),
+    'PAYMENT_FAILED':      (Icons.payment_rounded,         Color(0xFFDC2626), Color(0xFFFFEBEE)),
+    'MEMBERSHIP_ACTIVATED':(Icons.card_membership_rounded, Color(0xFF0284C7), Color(0xFFE0F2FE)),
+    'MEMBERSHIP_EXPIRING': (Icons.warning_amber_rounded,   Color(0xFFD97706), Color(0xFFFFF8E1)),
+    'MEMBERSHIP_EXPIRED':  (Icons.timer_off_rounded,       Color(0xFFDC2626), Color(0xFFFFEBEE)),
+    'SERVICE_REGISTERED':  (Icons.fitness_center_rounded,  Color(0xFF059669), Color(0xFFDCFCE7)),
+    'TRAINER_ASSIGNED':    (Icons.person_rounded,          Color(0xFF7C3AED), Color(0xFFF3E8FF)),
+    'SYSTEM':              (Icons.info_rounded,            Color(0xFF0284C7), Color(0xFFE0F2FE)),
+  };
+
+  (IconData, Color, Color) get _config {
+    final cfg = _typeConfig[notification.type];
+    if (cfg != null) return cfg;
+    // Social fallback
+    return (Icons.notifications_rounded, AppTheme.primaryBlue, const Color(0xFFE0F2FE));
+  }
+
+  String _formatTime() {
+    try {
+      final dt = DateTime.parse(notification.createdAt);
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'Vừa xong';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
+      if (diff.inHours < 24) return '${diff.inHours} giờ trước';
+      if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return notification.createdAt;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isRead ? Colors.grey[200]! : AppTheme.primaryBlue.withOpacity(0.15),
-          width: isRead ? 1 : 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isRead 
-                ? Colors.black.withOpacity(0.03)
-                : AppTheme.primaryBlue.withOpacity(0.08),
-            blurRadius: isRead ? 8 : 12,
-            offset: const Offset(0, 2),
+    final (icon, iconColor, bgColor) = _config;
+    final isRead = notification.isRead;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isRead
+                ? const Color(0xFFE2E8F0)
+                : AppTheme.primaryBlue.withOpacity(0.2),
+            width: isRead ? 1 : 1.5,
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Icon container with gradient background
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: iconBgColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: iconColor.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    icon,
-                    color: iconColor,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          boxShadow: [
+            BoxShadow(
+              color: isRead
+                  ? Colors.black.withOpacity(0.03)
+                  : AppTheme.primaryBlue.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: bgColor, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: isRead ? FontWeight.w600 : FontWeight.w800,
-                                color: AppTheme.textPrimary,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
+                      Expanded(
+                        child: Text(
+                          notification.title.isNotEmpty
+                              ? notification.title
+                              : notification.type,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isRead ? FontWeight.w600 : FontWeight.w800,
+                            color: AppTheme.textPrimary,
                           ),
-                          if (!isRead)
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [AppTheme.primaryBlue, AppTheme.secondaryBlue],
-                                ),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryBlue.withOpacity(0.4),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        message,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textSecondary,
-                          height: 1.5,
-                          fontWeight: isRead ? FontWeight.w400 : FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 14,
-                            color: AppTheme.textLight,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            time,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.textLight,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                      if (!isRead)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                              color: AppTheme.primaryBlue,
+                              shape: BoxShape.circle),
+                        ),
                     ],
                   ),
-                ),
-              ],
+                  if (notification.message.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      notification.message,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                        height: 1.4,
+                        fontWeight:
+                            isRead ? FontWeight.w400 : FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time_rounded,
+                          size: 11, color: AppTheme.textLight),
+                      const SizedBox(width: 3),
+                      Text(_formatTime(),
+                          style: const TextStyle(
+                              fontSize: 11, color: AppTheme.textLight)),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

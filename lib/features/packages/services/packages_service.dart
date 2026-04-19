@@ -24,20 +24,23 @@ class PackagesService {
     return list.cast<Map<String, dynamic>>();
   }
 
-  // POST /payment/membership — purchase a package
-  Future<Map<String, dynamic>> purchasePackage({
-    required int packageId,
-    required String paymentMethod,
-  }) async {
-    final userId = await _storage.getUserId();
-    final res = await Api.private.post(
-      '/payment/membership',
-      data: {
-        'userId': userId,
-        'packageId': packageId,
-        'paymentMethod': paymentMethod,
-      },
-    );
-    return (res.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
+  // GET /user/memberships/active-packages — danh sách packageId đang active
+  Future<Set<int>> getActivePackageIds() async {
+    try {
+      final res = await Api.private.get('/user/memberships/active-packages');
+      final raw = (res.data as Map<String, dynamic>)['data'];
+      if (raw == null) return {};
+      final list = raw is List ? raw : [];
+      return list.map((e) => (e as num).toInt()).toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  // POST /user/memberships/counter — đăng ký gói tập thanh toán tại quầy
+  Future<void> registerCounterMembership({required int packageId}) async {
+    await Api.private.post('/user/memberships/counter', data: {
+      'packageId': packageId,
+    });
   }
 }

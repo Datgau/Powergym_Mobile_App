@@ -8,4 +8,8 @@ class AppNavigator {
   static void goToLogin() {
     key.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
   }
+
+  static void goToHome() {
+    key.currentState?.pushNamedAndRemoveUntil('/home', (_) => false);
+  }
 }

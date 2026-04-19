@@ -50,11 +50,20 @@ class MembershipPackage {
   }
 
   // Các hàm getter (tiện ích) hỗ trợ format hiển thị nhanh trên UI
-  String get formattedPrice => '${price.toStringAsFixed(0)}đ';
+  String get formattedPrice => _fmtVnd(price);
 
-  String get formattedOriginalPrice => originalPrice != null
-      ? '${originalPrice!.toStringAsFixed(0)}đ'
-      : '';
+  String get formattedOriginalPrice =>
+      originalPrice != null ? _fmtVnd(originalPrice!) : '';
+
+  static String _fmtVnd(double amount) {
+    final parts = amount.toStringAsFixed(0).split('');
+    final buf = StringBuffer();
+    for (var i = 0; i < parts.length; i++) {
+      if (i > 0 && (parts.length - i) % 3 == 0) buf.write('.');
+      buf.write(parts[i]);
+    }
+    return '${buf.toString()}đ';
+  }
 
   String get durationText => '$duration ngày';
 }
