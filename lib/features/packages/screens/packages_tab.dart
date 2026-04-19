@@ -1,501 +1,400 @@
 import 'package:flutter/material.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
-import 'package:powergym_mobile_app/widgets/gradient_container.dart';
 import '../models/membership_package.dart';
 import '../services/packages_service.dart';
 import '../widgets/payment_method_bottom_sheet.dart';
 
-// ── Hàm tiện ích chuyển đổi mã màu HEX từ Backend sang Color của Flutter ──
-Color _parseColor(String? colorHex) {
-  if (colorHex == null || colorHex.isEmpty) return AppTheme.primaryBlue;
+Color _parseColor(String? hex) {
+  if (hex == null || hex.isEmpty) return AppTheme.primaryBlue;
   try {
-    final hex = colorHex.replaceAll('#', '');
-    return Color(int.parse('FF$hex', radix: 16));
-  } catch (e) {
+    return Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
+  } catch (_) {
     return AppTheme.primaryBlue;
   }
 }
 
-// ── Main tab ───────────────────────────────────────────────────────
 class PackagesTab extends StatefulWidget {
-  const PackagesTab({super.key});
+  final VoidCallback? onPaymentSuccess;
+  const PackagesTab({super.key, this.onPaymentSuccess});
 
   @override
   State<PackagesTab> createState() => _PackagesTabState();
 }
 
 class _PackagesTabState extends State<PackagesTab> {
-  final PackagesService _packagesService = PackagesService();
+  final PackagesService _svc = PackagesService();
   late Future<List<MembershipPackage>> _packagesFuture;
+  Set<int> _activeIds = {};
+  final _searchCtrl = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
-    // Gọi API lấy danh sách gói tập đang Active từ Backend
-    _packagesFuture = _packagesService.getAvailablePackages();
+    _packagesFuture = _svc.getAvailablePackages();
+    _loadActiveIds();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadActiveIds() async {
+    final ids = await _svc.getActivePackageIds();
+    if (mounted) setState(() => _activeIds = ids);
+  }
+
+  void _onPaymentSuccess() {
+    _loadActiveIds();
+    widget.onPaymentSuccess?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        // ── Gradient header with active package ────
-        SliverToBoxAdapter(
-          child: GradientContainer(
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Gói tập của tôi',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        _ActiveBadge(),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Có thể thay thế bằng dữ liệu Gói đang dùng thực tế của User sau này
-                    const Text(
-                      'Bạn chưa có gói tập nào đang hoạt động.',
-                      style: TextStyle(color: Colors.white70),
+    return Column(
+      children: [
+        // ── Thanh tìm kiếm ──────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+          child: TextField(
+            controller: _searchCtrl,
+            style: const TextStyle(fontSize: 13),
+            onChanged: (v) => setState(() => _query = v.toLowerCase()),
+            decoration: InputDecoration(
+              hintText: 'Tìm gói tập...',
+              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+              prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
+              suffixIcon: _query.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 16),
+                      onPressed: () => _searchCtrl.clear(),
                     )
-                  ],
-                ),
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AppTheme.primaryBlue),
               ),
             ),
           ),
         ),
 
-        // ── Section header ─────────────────────────────────────────────────
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
-            child: _SectionHeader(title: 'Mua gói tập mới'),
-          ),
-        ),
-
-        // ── Danh sách gói tập (Gọi từ API) ─────────────────────────────────
-        SliverToBoxAdapter(
+        // ── Danh sách ───────────────────────────────────────────────────
+        Expanded(
           child: FutureBuilder<List<MembershipPackage>>(
             future: _packagesFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              } else if (snapshot.hasError) {
-                return Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Center(
-                      child: Text('Lỗi: ${snapshot.error}', style: const TextStyle(color: Colors.red))
-                  ),
-                );
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Center(child: Text('Hiện không có gói tập nào.')),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snap.hasError) {
+                return Center(
+                  child: Text('Lỗi: ${snap.error}',
+                      style: const TextStyle(color: Colors.red, fontSize: 13)),
                 );
               }
+              final all = snap.data ?? [];
+              final packages = _query.isEmpty
+                  ? all
+                  : all.where((p) =>
+                      p.name.toLowerCase().contains(_query) ||
+                      (p.description?.toLowerCase().contains(_query) ?? false)).toList();
 
-              final packages = snapshot.data!;
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: packages.map((package) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      // Tự động render Gói VIP hoặc Gói Thường dựa trên mức giá
-                      child: package.price > 5000000
-                          ? _PlanCardWide(package: package)
-                          : _PlanCard(package: package),
-                    );
-                  }).toList(),
-                ),
+              if (all.isEmpty) {
+                return const Center(
+                    child: Text('Hiện không có gói tập nào.',
+                        style: TextStyle(fontSize: 13)));
+              }
+              if (packages.isEmpty) {
+                return Center(
+                  child: Text('Không tìm thấy "$_query"',
+                      style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
+                itemCount: packages.length,
+                itemBuilder: (_, i) {
+                  final pkg = packages[i];
+                  final registered = _activeIds.contains(pkg.id);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: pkg.price > 5000000
+                        ? _PlanCardWide(
+                            package: pkg,
+                            isRegistered: registered,
+                            onPaymentSuccess: _onPaymentSuccess,
+                          )
+                        : _PlanCard(
+                            package: pkg,
+                            isRegistered: registered,
+                            onPaymentSuccess: _onPaymentSuccess,
+                          ),
+                  );
+                },
               );
             },
           ),
         ),
-
-        // Tăng khoảng trống ở cuối để không bị BottomNavigationBar che khuất
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
     );
   }
 }
 
-// ── Các Component phụ trợ ─────────
-class _ActiveBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: Color(0xFF4ADE80),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          const Text(
-            'Đang hoạt động',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF1A202C),
-      ),
-    );
-  }
-}
-
-// ── Card hiển thị Gói Thường ───────────
+// ── Card Gói Thường (nhỏ gọn) ────────────────────────────────────────────────
 class _PlanCard extends StatelessWidget {
   final MembershipPackage package;
-  const _PlanCard({required this.package});
+  final bool isRegistered;
+  final VoidCallback? onPaymentSuccess;
+
+  const _PlanCard({required this.package, required this.isRegistered, this.onPaymentSuccess});
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = _parseColor(package.color);
+    final color = _parseColor(package.color);
 
     return Stack(
       children: [
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: package.isPopular ? themeColor : const Color(0xFFE8EEF5),
-              width: package.isPopular ? 2 : 1,
+              color: isRegistered ? const Color(0xFF15803D) : package.isPopular ? color : const Color(0xFFE8EEF5),
+              width: isRegistered || package.isPopular ? 2 : 1,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (package.isPopular) const SizedBox(height: 10),
-              const Text('💎', style: TextStyle(fontSize: 24)),
-              const SizedBox(height: 8),
-              Text(
-                package.name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A202C),
-                ),
-              ),
-              Text(
-                package.durationText,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    package.formattedPrice,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: themeColor,
-                    ),
-                  ),
-                  if (package.originalPrice != null) ...[
+          child: Opacity(
+            opacity: isRegistered ? 0.75 : 1.0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (package.isPopular || isRegistered) const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('💎', style: TextStyle(fontSize: 18)),
                     const SizedBox(width: 8),
-                    Text(
-                      package.formattedOriginalPrice,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                        decoration: TextDecoration.lineThrough,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(package.name,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1A202C))),
+                          Text(package.durationText,
+                              style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                        ],
                       ),
                     ),
-                  ]
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Features
-              ...package.features.map(
-                    (f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(4),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(package.formattedPrice,
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color)),
+                        if (package.originalPrice != null)
+                          Text(package.formattedOriginalPrice,
+                              style: const TextStyle(fontSize: 10, color: Colors.grey, decoration: TextDecoration.lineThrough)),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...package.features.take(3).map((f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(children: [
+                        Container(
+                          width: 12, height: 12,
+                          decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(3)),
+                          child: const Center(child: Text('✓', style: TextStyle(fontSize: 8, color: Color(0xFF15803D), fontWeight: FontWeight.w700))),
                         ),
-                        child: const Center(
-                          child: Text(
-                            '✓',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: Color(0xFF15803D),
-                              fontWeight: FontWeight.w700,
+                        const SizedBox(width: 6),
+                        Flexible(child: Text(f, style: const TextStyle(fontSize: 11, color: Color(0xFF374151)))),
+                      ]),
+                    )),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 34,
+                  child: ElevatedButton(
+                    onPressed: isRegistered
+                        ? null
+                        : () => showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => PaymentMethodBottomSheet(package: package, onPaymentSuccess: onPaymentSuccess),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          f,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF374151),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  // BƯỚC 5.2: Gắn BottomSheet chọn phương thức thanh toán vào đây
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => PaymentMethodBottomSheet(package: package),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: package.isPopular ? themeColor : const Color(0xFFE8F0FE),
-                    foregroundColor: package.isPopular ? Colors.white : AppTheme.primaryBlue,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isRegistered ? const Color(0xFFDCFCE7) : package.isPopular ? color : const Color(0xFFE8F0FE),
+                      foregroundColor: isRegistered ? const Color(0xFF15803D) : package.isPopular ? Colors.white : AppTheme.primaryBlue,
+                      disabledBackgroundColor: const Color(0xFFDCFCE7),
+                      disabledForegroundColor: const Color(0xFF15803D),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: EdgeInsets.zero,
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text(
-                    'Mua ngay',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isRegistered) ...[const Icon(Icons.check_circle, size: 13), const SizedBox(width: 4)],
+                        Text(isRegistered ? 'Đã đăng ký' : 'Mua ngay'),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        // Badge Phổ biến
-        if (package.isPopular)
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: themeColor,
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(16),
-                  bottomLeft: Radius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'PHỔ BIẾN',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
+        Positioned(
+          top: 0, right: 0,
+          child: isRegistered
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF15803D),
+                    borderRadius: BorderRadius.only(topRight: Radius.circular(12), bottomLeft: Radius.circular(8)),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.check_circle, color: Colors.white, size: 10),
+                    SizedBox(width: 3),
+                    Text('ĐÃ ĐĂNG KÝ', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                  ]),
+                )
+              : package.isPopular
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: const BorderRadius.only(topRight: Radius.circular(12), bottomLeft: Radius.circular(8)),
+                      ),
+                      child: const Text('PHỔ BIẾN', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                    )
+                  : const SizedBox.shrink(),
+        ),
       ],
     );
   }
 }
 
-// ── Card hiển thị Gói VIP ──────────────
+// ── Card Gói VIP (nhỏ gọn) ───────────────────────────────────────────────────
 class _PlanCardWide extends StatelessWidget {
   final MembershipPackage package;
-  const _PlanCardWide({required this.package});
+  final bool isRegistered;
+  final VoidCallback? onPaymentSuccess;
+
+  const _PlanCardWide({required this.package, required this.isRegistered, this.onPaymentSuccess});
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = _parseColor(package.color);
+    final color = _parseColor(package.color);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE8EEF5)),
-          boxShadow: [
-            BoxShadow(
-              color: themeColor.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ]
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isRegistered ? const Color(0xFF15803D) : const Color(0xFFE8EEF5),
+          width: isRegistered ? 2 : 1,
+        ),
+        boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 3))],
       ),
-      child: IntrinsicHeight(
+      child: Opacity(
+        opacity: isRegistered ? 0.75 : 1.0,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Trái: Thông tin
+            // Trái
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6,
-                    runSpacing: 4,
+                    spacing: 5, runSpacing: 3,
                     children: [
-                      const Text('👑', style: TextStyle(fontSize: 20)),
-                      Text(
-                        package.name,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1A202C),
-                        ),
-                      ),
+                      const Text('👑', style: TextStyle(fontSize: 16)),
+                      Text(package.name,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1A202C))),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A202C),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'VIP',
-                          style: TextStyle(
-                            color: Color(0xFFFFD700),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(color: const Color(0xFF1A202C), borderRadius: BorderRadius.circular(4)),
+                        child: const Text('VIP', style: TextStyle(color: Color(0xFFFFD700), fontSize: 8, fontWeight: FontWeight.w800)),
                       ),
+                      if (isRegistered)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(color: const Color(0xFF15803D), borderRadius: BorderRadius.circular(4)),
+                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.check_circle, color: Colors.white, size: 9),
+                            SizedBox(width: 2),
+                            Text('ĐÃ ĐĂNG KÝ', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+                          ]),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    package.durationText,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                  ),
-                  const SizedBox(height: 8),
-                  ...package.features.take(2).map(
-                        (f) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.check_circle, size: 14, color: Color(0xFF15803D)),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              f,
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF374151)),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 3),
+                  Text(package.durationText, style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                  const SizedBox(height: 6),
+                  ...package.features.take(2).map((f) => Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Row(children: [
+                          const Icon(Icons.check_circle, size: 11, color: Color(0xFF15803D)),
+                          const SizedBox(width: 4),
+                          Expanded(child: Text(f, style: const TextStyle(fontSize: 10, color: Color(0xFF374151)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        ]),
+                      )),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            // Phải: Giá + Nút
+            // Phải
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      package.formattedPrice,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: themeColor,
-                      ),
+                Text(package.formattedPrice,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+                if (package.originalPrice != null)
+                  Text(package.formattedOriginalPrice,
+                      style: const TextStyle(fontSize: 9, color: Colors.grey, decoration: TextDecoration.lineThrough)),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 30,
+                  child: ElevatedButton(
+                    onPressed: isRegistered
+                        ? null
+                        : () => showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => PaymentMethodBottomSheet(package: package, onPaymentSuccess: onPaymentSuccess),
+                            ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isRegistered ? const Color(0xFFDCFCE7) : color,
+                      foregroundColor: isRegistered ? const Color(0xFF15803D) : Colors.white,
+                      disabledBackgroundColor: const Color(0xFFDCFCE7),
+                      disabledForegroundColor: const Color(0xFF15803D),
+                      elevation: 0,
+                      minimumSize: const Size(70, 30),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                     ),
-                    if (package.originalPrice != null) ...[
-                      Text(
-                        package.formattedOriginalPrice,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey,
-                          decoration: TextDecoration.lineThrough,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => PaymentMethodBottomSheet(package: package),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: themeColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    minimumSize: const Size(80, 36),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-                  child: const Text(
-                    'Nâng cấp',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                    child: Text(isRegistered ? 'Đã đăng ký' : 'Nâng cấp'),
                   ),
                 ),
               ],

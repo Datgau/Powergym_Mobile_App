@@ -1,19 +1,27 @@
 import '../../../core/network/api.dart';
-import '../../../core/storage/auth_storage.dart';
 import '../models/notification_model.dart';
 
 /// ─── Notifications API service ────────────────────────────────────────────────
 class NotificationsService {
-  final AuthStorage _storage = AuthStorage();
 
-  // GET /notifications/user/{userId}
+  // GET /notifications
   Future<List<AppNotification>> getNotifications() async {
-    final userId = await _storage.getUserId();
-    final res = await Api.private.get('/notifications/user/$userId');
+    final res = await Api.private.get('/notifications');
     final raw = (res.data as Map<String, dynamic>)['data'];
     if (raw == null) return [];
     final list = raw is List ? raw : (raw['content'] as List? ?? []);
     return list.map((e) => AppNotification.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  // GET /notifications/unread-count
+  Future<int> getUnreadCount() async {
+    try {
+      final res = await Api.private.get('/notifications/unread-count');
+      final data = (res.data as Map<String, dynamic>)['data'] as Map<String, dynamic>?;
+      return (data?['count'] as num? ?? 0).toInt();
+    } catch (_) {
+      return 0;
+    }
   }
 
   // PUT /notifications/{id}/read
@@ -23,8 +31,7 @@ class NotificationsService {
 
   // PUT /notifications/read-all
   Future<void> markAllAsRead() async {
-    final userId = await _storage.getUserId();
-    await Api.private.put('/notifications/read-all', data: {'userId': userId});
+    await Api.private.put('/notifications/read-all');
   }
 
   // DELETE /notifications/{id}

@@ -4,7 +4,7 @@ import 'package:powergym_mobile_app/config/theme.dart';
 import '../providers/home_provider.dart';
 import 'home_tab.dart';
 import '../../bookings/screens/bookings_tab.dart';
-import '../../packages/screens/packages_tab.dart';
+import '../../packages/screens/packages_with_tabs.dart';
 import '../../notifications/screens/notifications_tab.dart';
 import '../../profile/screens/profile_tab.dart';
 
@@ -43,7 +43,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             children: [
               HomeTab(onTabChange: (i) => _tabNotifier.value = i),
               const BookingsTab(),
-              const PackagesTab(),
+              const PackagesWithTabsScreen(),
               const NotificationsTab(),
               const ProfileTab(),
             ],
