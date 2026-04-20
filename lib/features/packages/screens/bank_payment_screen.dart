@@ -142,7 +142,7 @@ class _BankPaymentScreenState extends State<BankPaymentScreen>
     setState(() => _isSavingQr = true);
     try {
       final response = await http.get(Uri.parse(widget.paymentData.qrUrl));
-      if (response.statusCode != 200) throw Exception('Tải ảnh thất bại');
+      if (response.statusCode != 200) throw Exception('Failed to load image');
 
       final Uint8List bytes = response.bodyBytes;
       final dir = await getTemporaryDirectory();
@@ -152,13 +152,13 @@ class _BankPaymentScreenState extends State<BankPaymentScreen>
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
         text:
-            'Mã QR thanh toán PowerGym\nSố tiền: $_formattedAmount\nNội dung: ${widget.paymentData.content}',
+            'PowerGym Payment QR\nAmount: $_formattedAmount\nNote: ${widget.paymentData.content}',
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Không thể tải QR: $e'),
+            content: Text('Could not save QR: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -173,7 +173,7 @@ class _BankPaymentScreenState extends State<BankPaymentScreen>
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Thanh toán VietQR'),
+        title: const Text('VietQR Payment'),
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
         ),
@@ -277,7 +277,7 @@ class _InfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Số tiền thanh toán',
+                const Text('Payment amount',
                     style: TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(height: 4),
                 Text(amount,
@@ -291,7 +291,7 @@ class _InfoCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text('Hết hạn sau',
+              const Text('Expires in',
                   style: TextStyle(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
               Text(countdown,
@@ -347,7 +347,7 @@ class _QrCard extends StatelessWidget {
                   color: AppTheme.primaryBlue, size: 20),
               const SizedBox(width: 8),
               const Text(
-                'Quét mã QR để thanh toán',
+                'Scan QR code to pay',
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -357,7 +357,7 @@ class _QrCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Dùng app ngân hàng bất kỳ hỗ trợ VietQR',
+            'Use any banking app that supports VietQR',
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 16),
@@ -409,7 +409,7 @@ class _QrCard extends StatelessWidget {
                     )
                   : const Icon(Icons.download_rounded, size: 18),
               label: Text(
-                isSavingQr ? 'Đang tải...' : 'Tải QR về máy / Chia sẻ',
+                isSavingQr ? 'Saving...' : 'Save QR / Share',
                 style: const TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600),
               ),
@@ -438,7 +438,7 @@ class _QrCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'Đang chờ xác nhận thanh toán...',
+                  'Waiting for payment confirmation...',
                   style: TextStyle(
                       fontSize: 13,
                       color: Color(0xFFFFA726),
@@ -493,7 +493,7 @@ class _BankInfoCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 const Text(
-                  'Thông tin chuyển khoản',
+                  'Transfer information',
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -504,34 +504,30 @@ class _BankInfoCard extends StatelessWidget {
           ),
 
           // Các dòng thông tin
+          _CopyRow(label: 'Bank', value: _kBankCode, canCopy: false),
           _CopyRow(
-            label: 'Ngân hàng',
-            value: _kBankCode,
-            canCopy: false,
-          ),
-          _CopyRow(
-            label: 'Số tài khoản',
+            label: 'Account No.',
             value: _kAccountNo,
             canCopy: true,
-            copySnackbar: 'Đã sao chép số tài khoản',
+            copySnackbar: 'Account number copied',
           ),
           _CopyRow(
-            label: 'Tên tài khoản',
+            label: 'Account Name',
             value: _kAccountName,
             canCopy: false,
           ),
           _CopyRow(
-            label: 'Số tiền',
+            label: 'Amount',
             value: amount,
             canCopy: true,
-            copyValue: content.split(' ').last, // copy số thuần
-            copySnackbar: 'Đã sao chép số tiền',
+            copyValue: content.split(' ').last,
+            copySnackbar: 'Amount copied',
           ),
           _CopyRow(
-            label: 'Nội dung CK',
+            label: 'Transfer note',
             value: content,
             canCopy: true,
-            copySnackbar: 'Đã sao chép nội dung chuyển khoản',
+            copySnackbar: 'Transfer note copied',
             isLast: true,
             highlight: true,
           ),
@@ -603,8 +599,7 @@ class _CopyRow extends StatelessWidget {
                     ClipboardData(text: copyValue ?? value));
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                        copySnackbar ?? 'Đã sao chép'),
+                    content: Text(copySnackbar ?? 'Copied'),
                     duration: const Duration(seconds: 2),
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
@@ -635,10 +630,10 @@ class _InstructionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const steps = [
-      ('📱', 'Quét QR bằng app ngân hàng hỗ trợ VietQR'),
-      ('📲', 'Hoặc: Mở app ngân hàng → Chuyển khoản → Nhập số TK BIDV bên trên'),
-      ('✅', 'Kiểm tra đúng số tiền và nội dung chuyển khoản'),
-      ('🔄', 'Hệ thống tự động xác nhận sau khi nhận tiền'),
+      ('📱', 'Scan QR with any VietQR-supported banking app'),
+      ('📲', 'Or: Open banking app → Transfer → Enter BIDV account above'),
+      ('✅', 'Verify the correct amount and transfer note'),
+      ('🔄', 'System auto-confirms after receiving payment'),
     ];
 
     return Container(
@@ -657,7 +652,7 @@ class _InstructionCard extends StatelessWidget {
                   color: Color(0xFF15803D), size: 16),
               SizedBox(width: 6),
               Text(
-                'Hướng dẫn thanh toán',
+                'Payment instructions',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -716,13 +711,13 @@ class _SuccessView extends StatelessWidget {
                   color: Color(0xFF15803D), size: 60),
             ),
             const SizedBox(height: 24),
-            const Text('Thanh toán thành công!',
+            const Text('Payment successful!',
                 style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF1A202C))),
             const SizedBox(height: 8),
-            Text('Gói "$packageName" đã được kích hoạt.',
+            Text('Package "$packageName" has been activated.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 14, color: Colors.grey)),
           ],
@@ -747,13 +742,13 @@ class _FailedView extends StatelessWidget {
           children: [
             const Icon(Icons.cancel, color: Color(0xFFEF4444), size: 80),
             const SizedBox(height: 24),
-            const Text('Thanh toán thất bại',
+            const Text('Payment failed',
                 style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF1A202C))),
             const SizedBox(height: 8),
-            const Text('Giao dịch không thành công. Vui lòng thử lại.',
+            const Text('Transaction failed. Please try again.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey)),
             const SizedBox(height: 24),
@@ -767,7 +762,7 @@ class _FailedView extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Thử lại',
+              child: const Text('Try again',
                   style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
@@ -793,14 +788,14 @@ class _ExpiredView extends StatelessWidget {
             const Icon(Icons.timer_off,
                 color: Color(0xFFFFA726), size: 80),
             const SizedBox(height: 24),
-            const Text('Mã QR đã hết hạn',
+            const Text('QR code expired',
                 style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF1A202C))),
             const SizedBox(height: 8),
             const Text(
-                'Vui lòng quay lại và tạo đơn thanh toán mới.',
+                'Please go back and create a new payment.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey)),
             const SizedBox(height: 24),
@@ -814,7 +809,7 @@ class _ExpiredView extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Quay lại',
+              child: const Text('Go back',
                   style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],

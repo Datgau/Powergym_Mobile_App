@@ -64,7 +64,7 @@ class _PackagesWithTabsScreenState extends State<PackagesWithTabsScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Gói tập & Dịch vụ',
+                          'Memberships & Services',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 17,
@@ -82,7 +82,7 @@ class _PackagesWithTabsScreenState extends State<PackagesWithTabsScreen>
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                     child: _loadingUserPackages
                         ? const Text(
-                            'Đang tải...',
+                            'Loading...',
                             style: TextStyle(color: Colors.white70, fontSize: 13),
                           )
                         : _ActivePackageSummary(packages: _userPackages),
@@ -99,8 +99,8 @@ class _PackagesWithTabsScreenState extends State<PackagesWithTabsScreen>
                     unselectedLabelColor: Colors.white54,
                     labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     tabs: const [
-                      Tab(text: 'Dịch vụ', height: 36),
-                      Tab(text: 'Gói tập', height: 36),
+                      Tab(text: 'Services', height: 36),
+                      Tab(text: 'Memberships', height: 36),
                     ],
                   ),
                 ],
@@ -148,7 +148,7 @@ class _ActiveBadge extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           const Text(
-            'Đang hoạt động',
+            'Active',
             style: TextStyle(
               color: Colors.white,
               fontSize: 12,
@@ -175,7 +175,7 @@ class _ActivePackageSummary extends StatelessWidget {
 
     if (active.isEmpty) {
       return const Text(
-        'Bạn chưa có gói tập nào đang hoạt động.',
+        'You have no active membership.',
         style: TextStyle(color: Colors.white70, fontSize: 13),
       );
     }
@@ -208,7 +208,7 @@ class _ActivePackageSummary extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            endDate.isNotEmpty ? 'HH: $endDate • Còn $daysLeft ngày' : 'Còn $daysLeft ngày',
+            endDate.isNotEmpty ? 'Exp: $endDate • $daysLeft days left' : '$daysLeft days left',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,

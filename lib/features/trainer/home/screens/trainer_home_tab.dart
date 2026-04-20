@@ -5,6 +5,8 @@ import 'package:powergym_mobile_app/widgets/gradient_container.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../models/trainer_home_models.dart';
 import '../providers/trainer_home_provider.dart';
+import '../../../../features/classes/screens/community_screen.dart';
+import '../../../../features/classes/screens/trainer_my_classes_screen.dart';
 
 class TrainerHomeTab extends StatefulWidget {
   final void Function(int) onTabChange;
@@ -26,7 +28,8 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final name = context.watch<AuthProvider>().currentUser?.fullName.split(' ').last ?? 'Trainer';
+    final user = context.watch<AuthProvider>().currentUser;
+    final name = user?.fullName.split(' ').last ?? 'Trainer';
     final provider = context.watch<TrainerHomeProvider>();
 
     return CustomScrollView(
@@ -56,7 +59,7 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Xin chào PT 👋',
+                              const Text('Hello Trainer, ',
                                   style: TextStyle(color: Colors.white70, fontSize: 14)),
                               const SizedBox(height: 4),
                               Text(name,
@@ -68,21 +71,29 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                             ],
                           ),
                           GestureDetector(
-                            onTap: () => widget.onTabChange(5),
+                            onTap: () => widget.onTabChange(4),
                             child: Container(
                               width: 52, height: 52,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.white.withOpacity(0.2),
                                 border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                                image: user?.avatar != null
+                                    ? DecorationImage(
+                                        image: NetworkImage(user!.avatar!),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
-                              child: const Icon(Icons.person, color: Colors.white, size: 28),
+                              child: user?.avatar == null
+                                  ? const Icon(Icons.person, color: Colors.white, size: 28)
+                                  : null,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // Stats strip
+                      // Stats strip - using salary data
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
@@ -91,11 +102,9 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _StatChip(label: 'Học viên', value: '${provider.stats.totalClients}'),
+                            _StatChip(label: 'Clients', value: '${provider.salary.totalClients}'),
                             _VDivider(),
-                            _StatChip(label: 'Chờ duyệt', value: '${provider.stats.pendingBookings}'),
-                            _VDivider(),
-                            _StatChip(label: 'Sắp tới', value: '${provider.stats.upcomingBookings}'),
+                            _StatChip(label: 'Pending approval', value: '${provider.pendingBookings.length}'),
                           ],
                         ),
                       ),
@@ -121,34 +130,33 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Earnings card
+                          // Earnings card - using salary data
                           _EarningsCard(
-                            earnings: provider.stats.totalEarnings,
+                            earnings: provider.salary.totalSalary,
                             rating: provider.stats.averageRating,
-                            onTap: () => widget.onTabChange(4),
+                            onTap: () => widget.onTabChange(2),
                           ),
                           const SizedBox(height: 24),
 
                           // Quick actions
                           Row(
                             children: [
-                              Expanded(child: _QuickAction(icon: Icons.people_rounded, label: 'Học viên', color: const Color(0xFF7C3AED), onTap: () => widget.onTabChange(1))),
+                              Expanded(child: _QuickAction(icon: Icons.event_busy_rounded, label: 'Leave Request', color: const Color(0xFFEF4444), onTap: () => _showLeaveRequestModal(context))),
                               const SizedBox(width: 12),
-                              Expanded(child: _QuickAction(icon: Icons.calendar_month_rounded, label: 'Lịch tập', color: AppTheme.primaryBlue, onTap: () => widget.onTabChange(2))),
+                              Expanded(child: _QuickAction(icon: Icons.groups_rounded, label: 'Community', color: AppTheme.primaryBlue, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunityScreen())))),
                               const SizedBox(width: 12),
-                              Expanded(child: _QuickAction(icon: Icons.account_balance_wallet_rounded, label: 'Thu nhập', color: const Color(0xFF059669), onTap: () => widget.onTabChange(4))),
+                              Expanded(child: _QuickAction(icon: Icons.fitness_center_rounded, label: 'My Classes', color: const Color(0xFF059669), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrainerMyClassesScreen())))),
                             ],
                           ),
                           const SizedBox(height: 24),
-
                           // Pending requests
                           _SectionHeader(
-                              title: 'Yêu cầu chờ xác nhận',
+                              title: 'Pending Requests',
                               count: provider.pendingBookings.length,
                               countColor: AppTheme.warning),
                           const SizedBox(height: 12),
                           if (provider.pendingBookings.isEmpty)
-                            const _EmptyCard(emoji: '', message: 'Không có yêu cầu nào đang chờ')
+                            const _EmptyCard(emoji: '', message: 'No pending requests')
                           else
                             ...provider.pendingBookings.map((b) => Padding(
                                   padding: const EdgeInsets.only(bottom: 10),
@@ -166,12 +174,12 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
 
                           // Upcoming
                           _SectionHeader(
-                              title: 'Lịch tập sắp tới',
+                              title: 'Upcoming Schedule',
                               count: provider.upcomingBookings.length,
                               countColor: AppTheme.primaryBlue),
                           const SizedBox(height: 12),
                           if (provider.upcomingBookings.isEmpty)
-                            const _EmptyCard(emoji: '📅', message: 'Chưa có lịch tập sắp tới')
+                            const _EmptyCard(emoji: '📅', message: 'No upcoming sessions')
                           else
                             ...provider.upcomingBookings.map((b) => Padding(
                                   padding: const EdgeInsets.only(bottom: 10),
@@ -190,14 +198,14 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Từ chối lịch hẹn'),
+        title: const Text('Reject Booking'),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(hintText: 'Lý do từ chối...'),
+          decoration: const InputDecoration(hintText: 'Reason for rejection...'),
           maxLines: 3,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
@@ -205,10 +213,19 @@ class _TrainerHomeTabState extends State<TrainerHomeTab> {
               context.read<TrainerHomeProvider>().rejectBooking(id, booking.bookingId, ctrl.text);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('Từ chối'),
+            child: const Text('Reject'),
           ),
         ],
       ),
+    );
+  }
+
+  void _showLeaveRequestModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _LeaveRequestModal(),
     );
   }
 }
@@ -288,18 +305,11 @@ class _EarningsCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Thu nhập tháng này', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const Text('Total Salary', style: TextStyle(color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 6),
                     Text(_fmt(earnings), style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                     const SizedBox(height: 8),
-                    Row(children: [
-                      const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 16),
-                      const SizedBox(width: 4),
-                      Text(rating > 0 ? rating.toStringAsFixed(1) : 'Chưa có',
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 4),
-                      const Text('đánh giá', style: TextStyle(color: Colors.white60, fontSize: 12)),
-                    ]),
+
                   ],
                 ),
               ),
@@ -388,7 +398,7 @@ class _BookingCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(booking.memberName ?? 'Học viên',
+                      Text(booking.memberName ?? 'Student',
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
                       if (booking.serviceName != null)
                         Text(booking.serviceName!, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
@@ -426,7 +436,7 @@ class _BookingCard extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: onReject,
                       style: OutlinedButton.styleFrom(foregroundColor: AppTheme.error, side: BorderSide(color: AppTheme.error.withOpacity(0.5))),
-                      child: const Text('Từ chối', style: TextStyle(fontSize: 13)),
+                      child: const Text('Reject', style: TextStyle(fontSize: 13)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -434,7 +444,7 @@ class _BookingCard extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: onAccept,
                       style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success, foregroundColor: Colors.white, elevation: 0),
-                      child: const Text('Xác nhận', style: TextStyle(fontSize: 13)),
+                      child: const Text('Confirm', style: TextStyle(fontSize: 13)),
                     ),
                   ),
                 ],
@@ -474,7 +484,345 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: onRetry, child: const Text('Thử lại')),
+          ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
         ]),
       );
 }
+
+// ── Leave Request Modal ───────────────────────────────────────────────────────
+class _LeaveRequestModal extends StatefulWidget {
+  @override
+  State<_LeaveRequestModal> createState() => _LeaveRequestModalState();
+}
+
+class _LeaveRequestModalState extends State<_LeaveRequestModal> {
+  DateTime? _startDate;
+  DateTime? _endDate;
+  final _reasonCtrl = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _reasonCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate(bool isStart) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.primaryBlue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppTheme.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+          // Reset end date if it's before start date
+          if (_endDate != null && _endDate!.isBefore(picked)) {
+            _endDate = null;
+          }
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_startDate == null || _endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select both start and end dates')),
+      );
+      return;
+    }
+    if (_reasonCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a reason')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final trainerId = context.read<AuthProvider>().currentUser?.id ?? 0;
+      
+      // Call API to submit leave request
+      await context.read<TrainerHomeProvider>().submitLeaveRequest(
+        trainerId: trainerId,
+        startDate: _startDate!,
+        endDate: _endDate!,
+        reason: _reasonCtrl.text.trim(),
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Leave request submitted successfully'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit: ${e.toString()}'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Select date';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Title
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.event_busy_rounded, color: Color(0xFFEF4444), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Leave Request',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Start Date
+              const Text(
+                'Start Date',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => _pickDate(true),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, 
+                          color: _startDate != null ? AppTheme.primaryBlue : Colors.grey[400], 
+                          size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        _formatDate(_startDate),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: _startDate != null ? AppTheme.textPrimary : Colors.grey[500],
+                          fontWeight: _startDate != null ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // End Date
+              const Text(
+                'End Date',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => _pickDate(false),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, 
+                          color: _endDate != null ? AppTheme.primaryBlue : Colors.grey[400], 
+                          size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        _formatDate(_endDate),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: _endDate != null ? AppTheme.textPrimary : Colors.grey[500],
+                          fontWeight: _endDate != null ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Reason
+              const Text(
+                'Reason',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _reasonCtrl,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Enter reason for leave request...',
+                  hintStyle: TextStyle(color: Colors.grey[500]),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _submitting ? null : () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: Colors.grey[300]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _submitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFFEF4444),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'Submit',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

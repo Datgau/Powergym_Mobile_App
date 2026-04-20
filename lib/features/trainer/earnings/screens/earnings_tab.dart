@@ -39,7 +39,7 @@ class _EarningsTabState extends State<EarningsTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Thu nhập', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+                    const Text('Earnings', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 16),
                     if (!provider.isLoading) ...[
                       Text(
@@ -48,7 +48,7 @@ class _EarningsTabState extends State<EarningsTab> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Cập nhật: ${_fmtDate(provider.earnings.calculatedAt)}',
+                        'Updated: ${_fmtDate(provider.earnings.calculatedAt)}',
                         style: const TextStyle(color: Colors.white60, fontSize: 12),
                       ),
                     ],
@@ -76,7 +76,7 @@ class _EarningsTabState extends State<EarningsTab> {
                             final id = context.read<AuthProvider>().currentUser?.id.toString() ?? '';
                             context.read<EarningsProvider>().load(id);
                           },
-                          child: const Text('Thử lại'),
+                          child: const Text('Retry'),
                         ),
                       ]),
                     )
@@ -85,7 +85,7 @@ class _EarningsTabState extends State<EarningsTab> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Chi tiết theo dịch vụ',
+                          const Text('Breakdown by Service',
                               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
                           const SizedBox(height: 12),
                           if (provider.earnings.serviceBreakdown.isEmpty)
@@ -95,7 +95,7 @@ class _EarningsTabState extends State<EarningsTab> {
                               child: const Row(children: [
                                 Text('💰', style: TextStyle(fontSize: 24)),
                                 SizedBox(width: 12),
-                                Text('Chưa có dữ liệu thu nhập', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                                Text('No earnings data yet', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
                               ]),
                             )
                           else
@@ -167,7 +167,7 @@ class _ServiceEarningCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                _InfoChip(icon: Icons.people_rounded, label: '${earning.studentCount} học viên'),
+                _InfoChip(icon: Icons.people_rounded, label: '${earning.studentCount} students'),
                 const SizedBox(width: 12),
                 _InfoChip(icon: Icons.percent_rounded, label: '${(earning.trainerPercentage * 100).toStringAsFixed(0)}%'),
                 const SizedBox(width: 12),

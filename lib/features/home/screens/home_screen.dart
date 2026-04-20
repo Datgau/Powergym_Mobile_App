@@ -69,27 +69,27 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 BottomNavigationBarItem(
                   icon: Icon(Icons.home_outlined),
                   activeIcon: Icon(Icons.home),
-                  label: 'Trang chủ',
+                  label: 'Home',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.calendar_today_outlined),
                   activeIcon: Icon(Icons.calendar_today),
-                  label: 'Lịch tập',
+                  label: 'Workout',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.fitness_center_outlined),
                   activeIcon: Icon(Icons.fitness_center),
-                  label: 'Gói tập',
+                  label: 'Membership',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.notifications_none_outlined),
                   activeIcon: Icon(Icons.notifications),
-                  label: 'Thông báo',
+                  label: 'Notifications',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.person_outline),
                   activeIcon: Icon(Icons.person),
-                  label: 'Cá nhân',
+                  label: 'Profile',
                 ),
               ],
             ),

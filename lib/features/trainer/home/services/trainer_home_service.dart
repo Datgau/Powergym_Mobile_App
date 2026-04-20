@@ -32,6 +32,25 @@ class TrainerHomeService {
     }
   }
 
+  /// GET /api/trainers/{trainerId}/salary
+  /// Returns salary information (excluding rejected/cancelled bookings)
+  Future<TrainerSalaryData> getSalary(String trainerId) async {
+    try {
+      final res = await Api.private.get('/trainers/$trainerId/salary');
+      final data = res.data;
+      
+      // Handle both wrapped and unwrapped responses
+      final salaryData = data is Map<String, dynamic>
+          ? (data['data'] as Map<String, dynamic>? ?? data)
+          : <String, dynamic>{};
+      
+      return TrainerSalaryData.fromJson(salaryData);
+    } catch (e) {
+      print('Error fetching trainer salary: $e');
+      return TrainerSalaryData.empty();
+    }
+  }
+
   /// Accept booking: PUT /api/trainer/{trainerId}/bookings/{bookingId}/accept
   Future<void> acceptBooking(String trainerId, String bookingId, {String? notes}) async {
     await Api.private.put(
@@ -45,6 +64,23 @@ class TrainerHomeService {
     await Api.private.post(
       '/trainer/$trainerId/bookings/$bookingId/reject',
       data: {'rejectionReason': reason},
+    );
+  }
+
+  /// Submit leave request: POST /api/trainer-leave-requests/trainer/{trainerId}
+  Future<void> submitLeaveRequest({
+    required int trainerId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required String reason,
+  }) async {
+    await Api.private.post(
+      '/trainer-leave-requests/trainer/$trainerId',
+      data: {
+        'startDate': startDate.toIso8601String().split('T')[0], // YYYY-MM-DD
+        'endDate': endDate.toIso8601String().split('T')[0],
+        'reason': reason,
+      },
     );
   }
 }

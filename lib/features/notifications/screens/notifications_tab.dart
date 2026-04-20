@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
 import 'package:powergym_mobile_app/widgets/gradient_container.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/notification_model.dart';
 import '../services/notifications_service.dart';
+import '../services/user_websocket_service.dart';
 
 class NotificationsTab extends StatefulWidget {
   const NotificationsTab({super.key});
@@ -13,14 +16,24 @@ class NotificationsTab extends StatefulWidget {
 
 class _NotificationsTabState extends State<NotificationsTab> {
   final NotificationsService _svc = NotificationsService();
+  final UserWebSocketService _ws = UserWebSocketService();
+
   List<AppNotification> _notifications = [];
   bool _loading = true;
   String? _error;
+  bool _wsConnected = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _connectWs();
+  }
+
+  @override
+  void dispose() {
+    _ws.disconnect();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -29,20 +42,83 @@ class _NotificationsTabState extends State<NotificationsTab> {
       final list = await _svc.getNotifications();
       if (mounted) setState(() => _notifications = list);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      // Don't show error for auth issues — user may not have notifications yet
+      if (mounted) {
+        final msg = e.toString();
+        // Only show error for non-auth failures
+        if (!msg.contains('401') && !msg.contains('403')) {
+          setState(() => _error = 'Could not load notifications');
+        } else {
+          setState(() => _notifications = []);
+        }
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  void _connectWs() {
+    final userId = context.read<AuthProvider>().currentUser?.id.toString();
+    if (userId == null) return;
+
+    _ws.onConnected = () {
+      if (mounted) setState(() => _wsConnected = true);
+    };
+    _ws.onDisconnected = () {
+      if (mounted) setState(() => _wsConnected = false);
+    };
+    _ws.onNotification = (payload) {
+      if (!mounted) return;
+      // Build AppNotification from WebSocket payload
+      final n = AppNotification.fromJson(payload);
+      setState(() {
+        // Prepend to list (newest first)
+        _notifications = [n, ..._notifications];
+      });
+      _showSnackBar(n);
+    };
+
+    _ws.connect(userId);
+  }
+
+  void _showSnackBar(AppNotification n) {
+    final (_, color, _) = _typeConfig(n.type);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(_typeIcon(n.type), color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(n.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 13)),
+                  if (n.message.isNotEmpty)
+                    Text(n.message,
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: color,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   Future<void> _markAllRead() async {
     await _svc.markAllAsRead();
     setState(() {
-      _notifications = _notifications.map((n) => AppNotification(
-        id: n.id, title: n.title, message: n.message,
-        type: n.type, isRead: true, createdAt: n.createdAt,
-        relatedId: n.relatedId, actorName: n.actorName, actorAvatar: n.actorAvatar,
-      )).toList();
+      _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
     });
   }
 
@@ -51,13 +127,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
     await _svc.markAsRead(n.id);
     setState(() {
       final idx = _notifications.indexWhere((x) => x.id == n.id);
-      if (idx != -1) {
-        _notifications[idx] = AppNotification(
-          id: n.id, title: n.title, message: n.message,
-          type: n.type, isRead: true, createdAt: n.createdAt,
-          relatedId: n.relatedId, actorName: n.actorName, actorAvatar: n.actorAvatar,
-        );
-      }
+      if (idx != -1) _notifications[idx] = n.copyWith(isRead: true);
     });
   }
 
@@ -76,7 +146,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
         slivers: [
           // ── Header ──────────────────────────────────────────────────────
           SliverAppBar(
-            expandedHeight: 120,
+            expandedHeight: 130,
             floating: false,
             pinned: true,
             elevation: 0,
@@ -92,18 +162,40 @@ class _NotificationsTabState extends State<NotificationsTab> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Thông báo',
+                            const Text('Notifications',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 22,
                                     fontWeight: FontWeight.w800)),
-                            if (_unreadCount > 0)
-                              TextButton(
-                                onPressed: _markAllRead,
-                                child: const Text('Đọc tất cả',
-                                    style: TextStyle(
-                                        color: Colors.white70, fontSize: 12)),
-                              ),
+                            Row(
+                              children: [
+                                // WebSocket status dot
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _wsConnected
+                                        ? const Color(0xFF10B981)
+                                        : Colors.white38,
+                                  ),
+                                ),
+                                if (_unreadCount > 0)
+                                  TextButton(
+                                    onPressed: _markAllRead,
+                                    child: const Text('Mark all read',
+                                        style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12)),
+                                  ),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh_rounded,
+                                      color: Colors.white70, size: 20),
+                                  onPressed: _load,
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                         if (_unreadCount > 0)
@@ -114,7 +206,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Text('$_unreadCount thông báo mới',
+                            child: Text('$_unreadCount new notification${_unreadCount > 1 ? 's' : ''}',
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
@@ -142,11 +234,11 @@ class _NotificationsTabState extends State<NotificationsTab> {
                     const Icon(Icons.error_outline,
                         color: AppTheme.error, size: 48),
                     const SizedBox(height: 12),
-                    const Text('Không thể tải thông báo',
+                    const Text('Could not load notifications',
                         style: TextStyle(color: AppTheme.textSecondary)),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                        onPressed: _load, child: const Text('Thử lại')),
+                        onPressed: _load, child: const Text('Retry')),
                   ],
                 ),
               ),
@@ -159,7 +251,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
                   children: [
                     Text('🔔', style: TextStyle(fontSize: 48)),
                     SizedBox(height: 12),
-                    Text('Chưa có thông báo nào',
+                    Text('No notifications yet',
                         style: TextStyle(
                             fontSize: 15, color: AppTheme.textSecondary)),
                   ],
@@ -206,6 +298,57 @@ class _NotificationsTabState extends State<NotificationsTab> {
   }
 }
 
+// ── Type config helpers ────────────────────────────────────────────────────
+IconData _typeIcon(String type) {
+  switch (type) {
+    case 'SERVICE_REGISTERED': return Icons.fitness_center_rounded;
+    case 'BOOKING_CONFIRMED': return Icons.check_circle_rounded;
+    case 'BOOKING_REJECTED': return Icons.cancel_rounded;
+    case 'BOOKING_CANCELLED': return Icons.event_busy_rounded;
+    case 'MEMBERSHIP_ACTIVATED': return Icons.card_membership_rounded;
+    case 'MEMBERSHIP_EXPIRING': return Icons.warning_amber_rounded;
+    case 'MEMBERSHIP_EXPIRED': return Icons.timer_off_rounded;
+    case 'PAYMENT_SUCCESS': return Icons.payment_rounded;
+    case 'TRAINER_ASSIGNED': return Icons.person_rounded;
+    default: return Icons.notifications_rounded;
+  }
+}
+
+(Color, Color, Color) _typeConfig(String type) {
+  switch (type) {
+    case 'SERVICE_REGISTERED':
+      return (Icons.fitness_center_rounded as dynamic,
+          const Color(0xFF059669), const Color(0xFFDCFCE7));
+    case 'BOOKING_CONFIRMED':
+      return (Icons.check_circle_rounded as dynamic,
+          const Color(0xFF059669), const Color(0xFFDCFCE7));
+    case 'BOOKING_REJECTED':
+      return (Icons.cancel_rounded as dynamic,
+          const Color(0xFFDC2626), const Color(0xFFFFEBEE));
+    case 'BOOKING_CANCELLED':
+      return (Icons.event_busy_rounded as dynamic,
+          const Color(0xFFD97706), const Color(0xFFFFF8E1));
+    case 'MEMBERSHIP_ACTIVATED':
+      return (Icons.card_membership_rounded as dynamic,
+          const Color(0xFF0284C7), const Color(0xFFE0F2FE));
+    case 'MEMBERSHIP_EXPIRING':
+      return (Icons.warning_amber_rounded as dynamic,
+          const Color(0xFFD97706), const Color(0xFFFFF8E1));
+    case 'MEMBERSHIP_EXPIRED':
+      return (Icons.timer_off_rounded as dynamic,
+          const Color(0xFFDC2626), const Color(0xFFFFEBEE));
+    case 'PAYMENT_SUCCESS':
+      return (Icons.payment_rounded as dynamic,
+          const Color(0xFF059669), const Color(0xFFDCFCE7));
+    case 'TRAINER_ASSIGNED':
+      return (Icons.person_rounded as dynamic,
+          const Color(0xFF7C3AED), const Color(0xFFF3E8FF));
+    default:
+      return (Icons.notifications_rounded as dynamic,
+          AppTheme.primaryBlue, const Color(0xFFE0F2FE));
+  }
+}
+
 // ── Notification Card ─────────────────────────────────────────────────────────
 class _NotificationCard extends StatelessWidget {
   final AppNotification notification;
@@ -213,37 +356,44 @@ class _NotificationCard extends StatelessWidget {
 
   const _NotificationCard({required this.notification, required this.onTap});
 
-  static const _typeConfig = {
-    'BOOKING_CONFIRMED':   (Icons.check_circle_rounded,   Color(0xFF059669), Color(0xFFDCFCE7)),
-    'BOOKING_REJECTED':    (Icons.cancel_rounded,          Color(0xFFDC2626), Color(0xFFFFEBEE)),
-    'BOOKING_CANCELLED':   (Icons.event_busy_rounded,      Color(0xFFD97706), Color(0xFFFFF8E1)),
-    'BOOKING_COMPLETED':   (Icons.emoji_events_rounded,    Color(0xFF7C3AED), Color(0xFFF3E8FF)),
-    'BOOKING_REMINDER':    (Icons.alarm_rounded,           Color(0xFF0284C7), Color(0xFFE0F2FE)),
-    'PAYMENT_SUCCESS':     (Icons.payment_rounded,         Color(0xFF059669), Color(0xFFDCFCE7)),
-    'PAYMENT_FAILED':      (Icons.payment_rounded,         Color(0xFFDC2626), Color(0xFFFFEBEE)),
-    'MEMBERSHIP_ACTIVATED':(Icons.card_membership_rounded, Color(0xFF0284C7), Color(0xFFE0F2FE)),
-    'MEMBERSHIP_EXPIRING': (Icons.warning_amber_rounded,   Color(0xFFD97706), Color(0xFFFFF8E1)),
-    'MEMBERSHIP_EXPIRED':  (Icons.timer_off_rounded,       Color(0xFFDC2626), Color(0xFFFFEBEE)),
-    'SERVICE_REGISTERED':  (Icons.fitness_center_rounded,  Color(0xFF059669), Color(0xFFDCFCE7)),
-    'TRAINER_ASSIGNED':    (Icons.person_rounded,          Color(0xFF7C3AED), Color(0xFFF3E8FF)),
-    'SYSTEM':              (Icons.info_rounded,            Color(0xFF0284C7), Color(0xFFE0F2FE)),
-  };
+  Color get _iconColor {
+    switch (notification.type) {
+      case 'SERVICE_REGISTERED': return const Color(0xFF059669);
+      case 'BOOKING_CONFIRMED': return const Color(0xFF059669);
+      case 'BOOKING_REJECTED': return const Color(0xFFDC2626);
+      case 'BOOKING_CANCELLED': return const Color(0xFFD97706);
+      case 'MEMBERSHIP_ACTIVATED': return const Color(0xFF0284C7);
+      case 'MEMBERSHIP_EXPIRING': return const Color(0xFFD97706);
+      case 'MEMBERSHIP_EXPIRED': return const Color(0xFFDC2626);
+      case 'PAYMENT_SUCCESS': return const Color(0xFF059669);
+      case 'TRAINER_ASSIGNED': return const Color(0xFF7C3AED);
+      default: return AppTheme.primaryBlue;
+    }
+  }
 
-  (IconData, Color, Color) get _config {
-    final cfg = _typeConfig[notification.type];
-    if (cfg != null) return cfg;
-    // Social fallback
-    return (Icons.notifications_rounded, AppTheme.primaryBlue, const Color(0xFFE0F2FE));
+  Color get _bgColor {
+    switch (notification.type) {
+      case 'SERVICE_REGISTERED': return const Color(0xFFDCFCE7);
+      case 'BOOKING_CONFIRMED': return const Color(0xFFDCFCE7);
+      case 'BOOKING_REJECTED': return const Color(0xFFFFEBEE);
+      case 'BOOKING_CANCELLED': return const Color(0xFFFFF8E1);
+      case 'MEMBERSHIP_ACTIVATED': return const Color(0xFFE0F2FE);
+      case 'MEMBERSHIP_EXPIRING': return const Color(0xFFFFF8E1);
+      case 'MEMBERSHIP_EXPIRED': return const Color(0xFFFFEBEE);
+      case 'PAYMENT_SUCCESS': return const Color(0xFFDCFCE7);
+      case 'TRAINER_ASSIGNED': return const Color(0xFFF3E8FF);
+      default: return const Color(0xFFE0F2FE);
+    }
   }
 
   String _formatTime() {
     try {
       final dt = DateTime.parse(notification.createdAt);
       final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 1) return 'Vừa xong';
-      if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
-      if (diff.inHours < 24) return '${diff.inHours} giờ trước';
-      if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
       return '${dt.day}/${dt.month}/${dt.year}';
     } catch (_) {
       return notification.createdAt;
@@ -252,7 +402,6 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, iconColor, bgColor) = _config;
     final isRead = notification.isRead;
 
     return GestureDetector(
@@ -286,8 +435,9 @@ class _NotificationCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                  color: bgColor, borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: iconColor, size: 22),
+                  color: _bgColor, borderRadius: BorderRadius.circular(12)),
+              child: Icon(_typeIcon(notification.type),
+                  color: _iconColor, size: 22),
             ),
             const SizedBox(width: 12),
             // Content
@@ -304,7 +454,8 @@ class _NotificationCard extends StatelessWidget {
                               : notification.type,
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: isRead ? FontWeight.w600 : FontWeight.w800,
+                            fontWeight:
+                                isRead ? FontWeight.w600 : FontWeight.w800,
                             color: AppTheme.textPrimary,
                           ),
                         ),

@@ -45,11 +45,11 @@ class TrainerBooking {
 
   String get statusLabel {
     switch (status) {
-      case 'CONFIRMED': return 'Đã xác nhận';
-      case 'PENDING':   return 'Chờ xác nhận';
-      case 'CANCELLED': return 'Đã hủy';
-      case 'COMPLETED': return 'Hoàn thành';
-      case 'REJECTED':  return 'Đã từ chối';
+      case 'CONFIRMED': return 'Confirmed';
+      case 'PENDING':   return 'Pending confirmation';
+      case 'CANCELLED': return 'Cancelled';
+      case 'COMPLETED': return 'Completed';
+      case 'REJECTED':  return 'Rejected';
       default:          return status;
     }
   }

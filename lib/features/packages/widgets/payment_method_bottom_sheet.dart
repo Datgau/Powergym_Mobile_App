@@ -52,7 +52,7 @@ class _PaymentMethodBottomSheetState
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                      'Đăng ký gói "${widget.package.name}" thành công!'),
+                      'Package "${widget.package.name}" registered successfully!'),
                   backgroundColor: AppTheme.success,
                 ),
               );
@@ -79,15 +79,15 @@ class _PaymentMethodBottomSheetState
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Thanh toán tại quầy',
+        title: const Text('Pay at counter',
             style: TextStyle(fontWeight: FontWeight.w700)),
         content: Text(
-          'Bạn sẽ đăng ký gói "${widget.package.name}" và thanh toán trực tiếp tại quầy lễ tân.\n\nXác nhận?',
+          'You will register for "${widget.package.name}" and pay in person at the front desk.\n\nConfirm?',
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy')),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
@@ -96,7 +96,7 @@ class _PaymentMethodBottomSheetState
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Xác nhận'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -118,7 +118,7 @@ class _PaymentMethodBottomSheetState
       ScaffoldMessenger.of(AppNavigator.key.currentContext!).showSnackBar(
         SnackBar(
           content: Text(
-              '✅ Đã đăng ký gói "${widget.package.name}". Vui lòng đến quầy để thanh toán.'),
+              '✅ Registered "${widget.package.name}". Please visit the front desk to complete payment.'),
           backgroundColor: AppTheme.success,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
@@ -152,8 +152,7 @@ class _PaymentMethodBottomSheetState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Chọn phương thức',
+                const Text('Select payment method',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -209,8 +208,8 @@ class _PaymentMethodBottomSheetState
             _PaymentOptionCard(
               icon: Icons.account_balance_rounded,
               iconColor: const Color(0xFF1366BA),
-              title: 'Chuyển khoản Ngân hàng',
-              subtitle: 'Quét mã VietQR — tự động xác nhận',
+              title: 'Bank Transfer',
+              subtitle: 'Scan VietQR — auto-confirmed',
               isLoading: _isLoading && _loadingMethod == 'BANK',
               disabled: _isLoading,
               onTap: _handleBankTransfer,
@@ -221,8 +220,8 @@ class _PaymentMethodBottomSheetState
             _PaymentOptionCard(
               icon: Icons.store_rounded,
               iconColor: const Color(0xFF059669),
-              title: 'Thanh toán tại quầy',
-              subtitle: 'Đến quầy lễ tân để hoàn tất thanh toán',
+              title: 'Pay at counter',
+              subtitle: 'Visit the front desk to complete payment',
               isLoading: _isLoading && _loadingMethod == 'COUNTER',
               disabled: _isLoading,
               onTap: _handleCounter,

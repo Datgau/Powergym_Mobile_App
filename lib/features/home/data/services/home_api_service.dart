@@ -36,4 +36,26 @@ class HomeApiService {
         .map((e) => MembershipPackageItem.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  // ─── User's service registrations ─────────────────────────────────────────
+  Future<List<ServiceRegistrationItem>> getMyServiceRegistrations() async {
+    final res = await Api.private.get('/service-registrations/my-registrations');
+    final raw = (res.data as Map<String, dynamic>)['data'];
+    if (raw == null) return [];
+    final list = raw is List ? raw : [];
+    return list
+        .map((e) => ServiceRegistrationItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // ─── User's active memberships ────────────────────────────────────────────
+  Future<List<ActiveMembershipItem>> getMyActiveMemberships() async {
+    final res = await Api.private.get('/user/memberships/active');
+    final raw = (res.data as Map<String, dynamic>)['data'];
+    if (raw == null) return [];
+    final list = raw is List ? raw : [];
+    return list
+        .map((e) => ActiveMembershipItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 }

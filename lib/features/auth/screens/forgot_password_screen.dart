@@ -43,6 +43,18 @@ class _AuthForgotPasswordScreenState extends State<AuthForgotPasswordScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              // Back button
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                    color: AppTheme.textPrimary,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
               const AuthHeader(
                 title: 'Reset Password',
                 subtitle: 'We\'ll send a reset link to your email',

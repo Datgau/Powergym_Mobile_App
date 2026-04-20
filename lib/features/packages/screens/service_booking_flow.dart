@@ -10,7 +10,7 @@ import '../services/service_registration_api.dart';
 import '../services/bank_payment_service.dart';
 import 'bank_payment_screen.dart';
 
-/// Luồng đăng ký dịch vụ: Chọn Trainer → Chọn Lịch → Thanh toán
+/// Service registration flow: Choose Trainer → Choose Schedule → Payment
 class ServiceBookingFlow extends StatefulWidget {
   final GymService service;
   final VoidCallback? onSuccess;
@@ -31,7 +31,7 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
   final _storage = AuthStorage();
 
   int _step = 0; // 0=trainer, 1=schedule, 2=payment
-  static const _steps = ['Chọn HLV', 'Chọn lịch', 'Thanh toán'];
+  static const _steps = ['Choose Trainer', 'Choose Schedule', 'Payment'];
 
   // Step 1
   List<TrainerForBooking> _trainers = [];
@@ -56,7 +56,7 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
       final list = await _api.getTrainersByService(widget.service.id);
       if (mounted) setState(() => _trainers = list);
     } catch (_) {
-      // Không có trainer — vẫn cho tiếp tục (admin sẽ assign)
+      // No trainers — continue anyway (admin will assign)
     } finally {
       if (mounted) setState(() => _loadingTrainers = false);
     }
@@ -65,7 +65,7 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
   void _next() {
     if (_step == 1 && _selectedSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn khung giờ tập')),
+        const SnackBar(content: Text('Please select a time slot')),
       );
       return;
     }
@@ -85,35 +85,35 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
       '${_selectedDate.month.toString().padLeft(2, '0')}-'
       '${_selectedDate.day.toString().padLeft(2, '0')}';
 
-  // Có đủ dữ liệu để tạo booking (bắt buộc phải có slot, trainer là optional)
+  // Has enough data to create booking (slot required, trainer optional)
   bool get _hasSlot => _selectedSlot != null;
   bool get _hasTrainer => _selectedTrainer != null;
 
-  // ── Thanh toán VietQR ────────────────────────────────────────────────────
-  // Luồng đúng theo web:
-  //   1. registerService(ONLINE) → lấy registrationId (PENDING)
-  //   2. Tạo QR bank payment (gắn registrationId)
-  //   3. Sau khi webhook kích hoạt → tìm registration ACTIVE → createBooking
+  // ── VietQR Payment ────────────────────────────────────────────────────
+  // Correct flow as per web:
+  //   1. registerService(ONLINE) → get registrationId (PENDING)
+  //   2. Create QR bank payment (attach registrationId)
+  //   3. After webhook triggers → find ACTIVE registration → createBooking
   Future<void> _payByBank() async {
     setState(() => _processing = true);
     try {
-      // Bước 1: Tạo registration ONLINE (PENDING — chờ webhook kích hoạt)
+      // Step 1: Create ONLINE registration (PENDING — waiting for webhook activation)
       final reg = await _api.registerService(
         serviceId: widget.service.id,
         registrationType: 'ONLINE',
         notes: _hasTrainer
-            ? 'Trainer mong muốn: ${_selectedTrainer!.fullName} | ${_selectedSlot?.label ?? ''} | $_bookingDateStr'
+            ? 'Preferred Trainer: ${_selectedTrainer!.fullName} | ${_selectedSlot?.label ?? ''} | $_bookingDateStr'
             : null,
       );
 
-      // Bước 2: Tạo QR bank payment, gắn registrationId để webhook match đúng
+      // Step 2: Create QR bank payment, attach registrationId for webhook matching
       final userIdStr = await _storage.getUserId();
       final userId = int.parse(userIdStr!);
       final res = await Api.private.post('/bank-payments/create', data: {
         'userId': userId,
         'serviceId': widget.service.id,
         'itemType': 'SERVICE',
-        // Gửi registrationId để BankPaymentService link đúng registration
+        // Send registrationId so BankPaymentService links correct registration
         'registrationId': reg.id,
       });
       final data =
@@ -121,9 +121,9 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
       final paymentData = CreateBankPaymentResponse.fromJson(data);
 
       if (!mounted) return;
-      Navigator.pop(context); // đóng flow
+      Navigator.pop(context); // close flow
 
-      // Bước 3: Mở màn hình QR — sau khi thanh toán thành công, tạo booking
+      // Step 3: Open QR screen — after successful payment, create booking
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -131,32 +131,32 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
             paymentData: paymentData,
             packageName: widget.service.name,
             onSuccess: () async {
-              Navigator.pop(context); // đóng QR screen
+              Navigator.pop(context); // close QR screen
 
-              // Tạo booking nếu user đã chọn lịch (trainer optional)
+              // Create booking if user selected schedule (trainer optional)
               if (_hasSlot) {
                 try {
-                  // Tìm registration vừa được webhook kích hoạt
+                  // Find registration just activated by webhook
                   final activeReg = await _api.findActiveRegistration(
                       widget.service.id, reg.id);
                   if (activeReg != null) {
                     await _api.createBooking(
                       serviceRegistrationId: activeReg.id,
-                      trainerId: _selectedTrainer?.id, // null = admin assign sau
+                      trainerId: _selectedTrainer?.id, // null = admin assigns later
                       bookingDate: _bookingDateStr,
                       startTime: _selectedSlot!.startTime,
                       endTime: _selectedSlot!.endTime,
                     );
                   }
                 } catch (_) {
-                  // Non-fatal — admin có thể assign sau
+                  // Non-fatal — admin can assign later
                 }
               }
 
               widget.onSuccess?.call();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Đăng ký "${widget.service.name}" thành công!'),
+                  content: Text('Successfully registered "${widget.service.name}"!'),
                   backgroundColor: AppTheme.success,
                 ),
               );
@@ -177,25 +177,25 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
     }
   }
 
-  // ── Thanh toán tại quầy ──────────────────────────────────────────────────
-  // Luồng đúng theo web:
+  // ── Counter Payment ──────────────────────────────────────────────────
+  // Correct flow as per web:
   //   1. registerService(COUNTER) → registrationId
-  //   2. createBooking ngay (nếu có trainer+lịch) — PENDING chờ admin xác nhận
-  //   3. Đóng flow, về trang gói tập
+  //   2. createBooking immediately (if has trainer+schedule) — PENDING awaiting admin confirmation
+  //   3. Close flow, return to packages page
   Future<void> _payAtCounter() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Thanh toán tại quầy',
+        title: const Text('Pay at Counter',
             style: TextStyle(fontWeight: FontWeight.w700)),
         content: Text(
-          'Bạn sẽ đăng ký dịch vụ "${widget.service.name}" và thanh toán trực tiếp tại quầy lễ tân.\n\nXác nhận?',
+          'You will register for "${widget.service.name}" and pay directly at the reception counter.\n\nConfirm?',
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy')),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
@@ -204,7 +204,7 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Xác nhận'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -213,40 +213,40 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
 
     setState(() => _processing = true);
     try {
-      // Bước 1: Tạo registration COUNTER
+      // Step 1: Create COUNTER registration
       final reg = await _api.registerService(
         serviceId: widget.service.id,
         registrationType: 'COUNTER',
         notes: _hasTrainer
-            ? 'Trainer mong muốn: ${_selectedTrainer!.fullName} | ${_selectedSlot?.label ?? ''} | $_bookingDateStr'
-            : 'Đăng ký qua app — thanh toán tại quầy',
+            ? 'Preferred Trainer: ${_selectedTrainer!.fullName} | ${_selectedSlot?.label ?? ''} | $_bookingDateStr'
+            : 'Registered via app — pay at counter',
       );
 
-      // Bước 2: Tạo booking ngay nếu có lịch (trainer optional — PENDING chờ admin xác nhận)
+      // Step 2: Create booking immediately if has schedule (trainer optional — PENDING awaiting admin confirmation)
       if (_hasSlot) {
         try {
           await _api.createBooking(
             serviceRegistrationId: reg.id,
-            trainerId: _selectedTrainer?.id, // null = admin assign sau
+            trainerId: _selectedTrainer?.id, // null = admin assigns later
             bookingDate: _bookingDateStr,
             startTime: _selectedSlot!.startTime,
             endTime: _selectedSlot!.endTime,
           );
         } catch (_) {
-          // Non-fatal — admin có thể assign sau khi xác nhận thanh toán
+          // Non-fatal — admin can assign after payment confirmation
         }
       }
 
       if (!mounted) return;
       widget.onSuccess?.call();
 
-      // Đóng hết về trang gói tập
+      // Close all and return to packages page
       Navigator.popUntil(context, (route) => route.isFirst);
 
       ScaffoldMessenger.of(AppNavigator.key.currentContext!).showSnackBar(
         SnackBar(
           content: Text(
-              '✅ Đã đăng ký "${widget.service.name}". Vui lòng đến quầy để thanh toán.'),
+              '✅ Successfully registered "${widget.service.name}". Please visit the counter to complete payment.'),
           backgroundColor: AppTheme.success,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
@@ -371,7 +371,7 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text('Quay lại'),
+                            child: const Text('Back'),
                           ),
                         ),
                       if (_step > 0) const SizedBox(width: 12),
@@ -389,7 +389,7 @@ class _ServiceBookingFlowState extends State<ServiceBookingFlow> {
                                 borderRadius: BorderRadius.circular(12)),
                           ),
                           child: Text(
-                            _step == 0 ? 'Tiếp theo' : 'Xác nhận lịch',
+                            _step == 0 ? 'Next' : 'Confirm Schedule',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700),
                           ),
@@ -474,7 +474,7 @@ class _StepIndicator extends StatelessWidget {
   }
 }
 
-// ── Step 1: Chọn Trainer ─────────────────────────────────────────────────────
+// ── Step 1: Choose Trainer ─────────────────────────────────────────────────────
 class _TrainerStep extends StatelessWidget {
   final List<TrainerForBooking> trainers;
   final bool loading;
@@ -506,7 +506,7 @@ class _TrainerStep extends StatelessWidget {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Bạn có thể bỏ qua bước này — Admin sẽ phân công HLV phù hợp.',
+                  'You can skip this step — Admin will assign a suitable trainer.',
                   style: TextStyle(fontSize: 12, color: Color(0xFF1D4ED8)),
                 ),
               ),
@@ -522,7 +522,7 @@ class _TrainerStep extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'Chưa có HLV nào. Admin sẽ phân công sau.',
+                'No trainers available yet. Admin will assign later.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textSecondary),
               ),
@@ -610,7 +610,7 @@ class _TrainerCard extends StatelessWidget {
                   if (trainer.totalExperienceYears != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      '${trainer.totalExperienceYears} năm kinh nghiệm',
+                      '${trainer.totalExperienceYears} years experience',
                       style: const TextStyle(
                           fontSize: 11, color: AppTheme.textLight),
                     ),
@@ -628,7 +628,7 @@ class _TrainerCard extends StatelessWidget {
   }
 }
 
-// ── Step 2: Chọn lịch ────────────────────────────────────────────────────────
+// ── Step 2: Choose Schedule ────────────────────────────────────────────────────────
 class _ScheduleStep extends StatelessWidget {
   final DateTime selectedDate;
   final TimeSlot? selectedSlot;
@@ -649,7 +649,7 @@ class _ScheduleStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Date picker
-        const Text('Chọn ngày bắt đầu',
+        const Text('Choose start date',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -671,7 +671,7 @@ class _ScheduleStep extends StatelessWidget {
         const SizedBox(height: 20),
 
         // Time slots
-        const Text('Chọn khung giờ',
+        const Text('Choose time slot',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -719,7 +719,7 @@ class _ScheduleStep extends StatelessWidget {
   }
 }
 
-// ── Step 3: Thanh toán ───────────────────────────────────────────────────────
+// ── Step 3: Payment ───────────────────────────────────────────────────────
 class _PaymentStep extends StatelessWidget {
   final GymService service;
   final TrainerForBooking? trainer;
@@ -747,7 +747,7 @@ class _PaymentStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Tóm tắt đơn
+        // Order summary
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -757,7 +757,7 @@ class _PaymentStep extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Xác nhận đăng ký',
+              const Text('Confirm Registration',
                   style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
@@ -771,21 +771,21 @@ class _PaymentStep extends StatelessWidget {
               const SizedBox(height: 12),
               _SummaryRow(
                   icon: Icons.person_rounded,
-                  label: 'HLV',
-                  value: trainer?.fullName ?? 'Admin sẽ phân công'),
+                  label: 'Trainer',
+                  value: trainer?.fullName ?? 'Admin will assign'),
               _SummaryRow(
                   icon: Icons.calendar_today_rounded,
-                  label: 'Ngày bắt đầu',
+                  label: 'Start Date',
                   value: _fmtDate(date)),
               _SummaryRow(
                   icon: Icons.access_time_rounded,
-                  label: 'Khung giờ',
+                  label: 'Time Slot',
                   value: slot?.label ?? '—'),
               const Divider(color: Colors.white24, height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Tổng thanh toán',
+                  const Text('Total Payment',
                       style: TextStyle(
                           color: Colors.white70, fontSize: 13)),
                   Text(service.formattedPrice,
@@ -800,30 +800,30 @@ class _PaymentStep extends StatelessWidget {
         ),
         const SizedBox(height: 24),
 
-        const Text('Chọn phương thức thanh toán',
+        const Text('Choose payment method',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF1A202C))),
         const SizedBox(height: 14),
 
-        // Chuyển khoản ngân hàng
+        // Bank transfer
         _PaymentOption(
           icon: Icons.account_balance_rounded,
           iconColor: const Color(0xFF1366BA),
-          title: 'Chuyển khoản Ngân hàng',
-          subtitle: 'Quét mã VietQR — tự động xác nhận',
+          title: 'Bank Transfer',
+          subtitle: 'Scan VietQR — auto confirmation',
           loading: processing,
           onTap: onBankPay,
         ),
         const SizedBox(height: 12),
 
-        // Thanh toán tại quầy
+        // Pay at counter
         _PaymentOption(
           icon: Icons.store_rounded,
           iconColor: const Color(0xFF059669),
-          title: 'Thanh toán tại quầy',
-          subtitle: 'Đến quầy lễ tân để hoàn tất thanh toán',
+          title: 'Pay at Counter',
+          subtitle: 'Visit reception to complete payment',
           loading: false,
           onTap: processing ? null : onCounterPay,
         ),

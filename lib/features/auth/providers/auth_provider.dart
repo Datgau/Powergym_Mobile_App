@@ -75,6 +75,12 @@ class AuthProvider extends ChangeNotifier {
         refreshToken: user.refreshToken,
       );
 
+      // Cache tokens in memory for immediate use (avoids SharedPreferences race condition)
+      Api.cacheTokens(
+        accessToken: user.accessToken,
+        refreshToken: user.refreshToken,
+      );
+
       _currentUser = user;
       _setSuccess();
       return true;
@@ -90,11 +96,17 @@ class AuthProvider extends ChangeNotifier {
     required String fullName,
     required String email,
     required String password,
+    required String confirmPassword,
   }) async {
     _setLoading();
     try {
       final res = await _api.register(
-        RegisterRequest(fullName: fullName, email: email, password: password),
+        RegisterRequest(
+          fullName: fullName,
+          email: email,
+          password: password,
+          confirmPassword: confirmPassword,
+        ),
       );
 
       if (!res.success) {
@@ -170,6 +182,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _storage.clearSession();
+    Api.clearCachedTokens();
     _currentUser = null;
     _status = AuthStatus.idle;
     notifyListeners();

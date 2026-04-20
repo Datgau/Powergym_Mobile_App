@@ -1,255 +1,748 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
 import 'package:powergym_mobile_app/widgets/gradient_container.dart';
+import '../../home/providers/home_provider.dart';
+import '../../home/data/models/home_models.dart';
 
 class BookingsTab extends StatelessWidget {
   const BookingsTab({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        // ── Hero App Bar ──────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: GradientContainer(
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top row: greeting + notification bell
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Chào buổi sáng,',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Nguyễn Văn A 👋',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Stack(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(
-                                Icons.notifications_outlined,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFFD700),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // Membership badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.25),
-                        ),
-                      ),
-                      child: const Text(
-                        '★  GOLD MEMBER',
+    return Consumer<HomeProvider>(
+      builder: (_, provider, __) {
+        return Column(
+          children: [
+            // ── Header ──────────────────────────────────────────────
+            GradientContainer(
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Workouts',
                         style: TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Stats row
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.2),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh_rounded,
+                            color: Colors.white70),
+                        onPressed: () => provider.loadAll(),
                       ),
-                      child: Row(
-                        children: const [
-                          _StatItem(value: '12', label: 'Buổi tập'),
-                          _StatDivider(),
-                          _StatItem(value: '8', label: 'Tuần streak'),
-                          _StatDivider(),
-                          _StatItem(value: '24', label: 'Ngày còn lại'),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
 
-        // ── Body ─────────────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: Container(
-            color: const Color(0xFFF5F7FB),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Quick Actions (4 items)
-                const _SectionHeader(title: 'Thao tác nhanh'),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _QuickActionItem(
-                      icon: Icons.calendar_month,
-                      label: 'Đặt lịch',
-                      bgColor: const Color(0xFFE8F0FE),
-                      iconColor: AppTheme.primaryBlue,
-                      onTap: () {},
-                    ),
-                    _QuickActionItem(
-                      icon: Icons.fitness_center,
-                      label: 'Bài tập',
-                      bgColor: const Color(0xFFFCE8E8),
-                      iconColor: Colors.redAccent,
-                      onTap: () {},
-                    ),
-                    _QuickActionItem(
-                      icon: Icons.restaurant_menu,
-                      label: 'Dinh dưỡng',
-                      bgColor: const Color(0xFFE8FCE8),
-                      iconColor: Colors.green,
-                      onTap: () {},
-                    ),
-                    _QuickActionItem(
-                      icon: Icons.bar_chart,
-                      label: 'Thống kê',
-                      bgColor: const Color(0xFFFEF5E8),
-                      iconColor: Colors.orange,
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // AI Trainer Banner
-                _AITrainerBanner(),
-                const SizedBox(height: 20),
-
-                // Upcoming Bookings
-                _SectionHeader(
-                  title: 'Lịch tập sắp tới',
-                  actionLabel: 'Xem tất cả',
-                  onAction: () {},
-                ),
-                const SizedBox(height: 12),
-                const _BookingCard(
-                  trainerName: 'PT. Nguyễn Văn B',
-                  specialty: 'Gym & Strength',
-                  date: '15/04/2026',
-                  time: '09:00 – 10:00',
-                  status: '✓  Đã xác nhận',
-                  statusColor: AppTheme.success,
-                  avatarEmoji: '💪',
-                ),
-                const SizedBox(height: 10),
-                const _BookingCard(
-                  trainerName: 'PT. Trần Thị C',
-                  specialty: 'Yoga & Flexibility',
-                  date: '17/04/2026',
-                  time: '14:00 – 15:00',
-                  status: '⏳  Chờ xác nhận',
-                  statusColor: AppTheme.warning,
-                  avatarEmoji: '🧘',
-                ),
-                const SizedBox(height: 20),
-
-                // Weekly Progress
-                _SectionHeader(
-                  title: 'Tiến độ tuần này',
-                  actionLabel: 'Chi tiết',
-                  onAction: () {},
-                ),
-                const SizedBox(height: 12),
-                const _WeeklyProgressCard(),
-                const SizedBox(height: 20),
-              ],
+            // ── Content ──────────────────────────────────────────────
+            Expanded(
+              child: provider.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : provider.status == HomeStatus.error
+                      ? _ErrorView(
+                          message: provider.error,
+                          onRetry: provider.loadAll,
+                        )
+                      : _ContentView(
+                          memberships: provider.activeMemberships,
+                          services: provider.serviceRegistrations,
+                        ),
             ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ── Content ────────────────────────────────────────────────────────────────
+class _ContentView extends StatelessWidget {
+  final List<ActiveMembershipItem> memberships;
+  final List<ServiceRegistrationItem> services;
+
+  const _ContentView({
+    required this.memberships,
+    required this.services,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (memberships.isEmpty && services.isEmpty) {
+      return const _EmptyView();
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // ── Goi tap ──────────────────────────────────────────────
+        if (memberships.isNotEmpty) ...[
+          _SectionLabel(
+            icon: Icons.card_membership_rounded,
+            label: 'Registered Memberships (${memberships.length})',
+            color: AppTheme.primaryBlue,
           ),
-        ),
+          const SizedBox(height: 10),
+          ...memberships.map((m) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _MembershipScheduleCard(item: m),
+              )),
+          const SizedBox(height: 20),
+        ],
+
+        // ── Dich vu ──────────────────────────────────────────────
+        if (services.isNotEmpty) ...[
+          _SectionLabel(
+            icon: Icons.fitness_center_rounded,
+            label: 'Registered Services (${services.length})',
+            color: const Color(0xFF01B3CA),
+          ),
+          const SizedBox(height: 10),
+          ...services.map((s) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _ServiceScheduleCard(item: s),
+              )),
+        ],
       ],
     );
   }
 }
 
-// ── Stat item in hero ──────────────────────────────────────────────
-class _StatItem extends StatelessWidget {
-  final String value;
-  final String label;
-  const _StatItem({required this.value, required this.label});
+// ── Membership Schedule Card ───────────────────────────────────────────────
+class _MembershipScheduleCard extends StatelessWidget {
+  final ActiveMembershipItem item;
+  const _MembershipScheduleCard({required this.item});
+
+  Color get _statusColor {
+    switch (item.status) {
+      case 'ACTIVE': return const Color(0xFF10B981);
+      case 'EXPIRED': return const Color(0xFF6B7280);
+      case 'CANCELLED': return const Color(0xFFEF4444);
+      default: return AppTheme.textSecondary;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
+    return GestureDetector(
+      onTap: () => _showCalendar(context),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.15)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
           children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
+            // Icon
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.card_membership_rounded,
+                  color: AppTheme.primaryBlue, size: 24),
+            ),
+            const SizedBox(width: 14),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.packageName,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined,
+                          size: 12, color: AppTheme.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item.formatDate(item.startDate)} - ${item.formatDate(item.endDate)}',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.timer_outlined,
+                          size: 12, color: AppTheme.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Remaining: ${item.remainingDays} days',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white60,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+            // Status + arrow
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.statusLabel,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: _statusColor),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Icon(Icons.calendar_month_rounded,
+                    color: AppTheme.primaryBlue, size: 20),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCalendar(BuildContext context) {
+    DateTime? start;
+    DateTime? end;
+    try {
+      start = DateTime.parse(item.startDate);
+      end = DateTime.parse(item.endDate);
+    } catch (_) {}
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CalendarSheet(
+        title: item.packageName,
+        subtitle: 'Membership - ${item.statusLabel}',
+        startDate: start,
+        endDate: end,
+        color: AppTheme.primaryBlue,
+        icon: Icons.card_membership_rounded,
+        details: [
+          _DetailRow(label: 'Start', value: item.formatDate(item.startDate)),
+          _DetailRow(label: 'End', value: item.formatDate(item.endDate)),
+          _DetailRow(label: 'Remaining', value: '${item.remainingDays} days'),
+          _DetailRow(label: 'Value', value: item.formattedPrice),
+          _DetailRow(label: 'Duration', value: '${item.duration} days'),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Service Schedule Card ──────────────────────────────────────────────────
+class _ServiceScheduleCard extends StatelessWidget {
+  final ServiceRegistrationItem item;
+  const _ServiceScheduleCard({required this.item});
+
+  Color get _statusColor {
+    switch (item.status) {
+      case 'ACTIVE':
+        if (item.bookingStatus == 'REJECTED' ||
+            item.bookingStatus == 'CANCELLED') return const Color(0xFFEF4444);
+        return const Color(0xFF10B981);
+      case 'CONFIRMED': return AppTheme.primaryBlue;
+      case 'PENDING': return const Color(0xFFF59E0B);
+      case 'EXPIRED': return const Color(0xFF6B7280);
+      case 'CANCELLED': return const Color(0xFFEF4444);
+      case 'COMPLETED': return const Color(0xFF6B7280);
+      default: return AppTheme.textSecondary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showCalendar(context),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: const Color(0xFF01B3CA).withOpacity(0.15)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF01B3CA).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.fitness_center_rounded,
+                  color: Color(0xFF01B3CA), size: 24),
+            ),
+            const SizedBox(width: 14),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.serviceName ?? 'Service',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  if (item.trainerName != null) ...[
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(Icons.person_outline,
+                            size: 12, color: AppTheme.textSecondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          item.trainerName!,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined,
+                          size: 12, color: AppTheme.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item.formatDate(item.startDate)} - ${item.formatDate(item.endDate)}',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Status + arrow
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.statusLabel,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: _statusColor),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Icon(Icons.calendar_month_rounded,
+                    color: Color(0xFF01B3CA), size: 20),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCalendar(BuildContext context) {
+    DateTime? start;
+    DateTime? end;
+    try {
+      if (item.startDate != null) start = DateTime.parse(item.startDate!);
+      if (item.endDate != null) end = DateTime.parse(item.endDate!);
+    } catch (_) {}
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CalendarSheet(
+        title: item.serviceName ?? 'Dich vu',
+        subtitle: item.trainerName != null
+            ? 'Trainer: ${item.trainerName}'
+            : 'Service - ${item.statusLabel}',
+        startDate: start,
+        endDate: end,
+        color: const Color(0xFF01B3CA),
+        icon: Icons.fitness_center_rounded,
+        details: [
+          _DetailRow(
+              label: 'Start', value: item.formatDate(item.startDate)),
+          _DetailRow(
+              label: 'End', value: item.formatDate(item.endDate)),
+          if (item.trainerName != null)
+            _DetailRow(label: 'Trainer', value: item.trainerName!),
+          if (item.formattedPrice.isNotEmpty)
+            _DetailRow(label: 'Price', value: item.formattedPrice),
+          if (item.duration != null)
+            _DetailRow(
+                label: 'Duration', value: '${item.duration} min/session'),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Calendar Bottom Sheet ──────────────────────────────────────────────────
+class _CalendarSheet extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final Color color;
+  final IconData icon;
+  final List<_DetailRow> details;
+
+  const _CalendarSheet({
+    required this.title,
+    required this.subtitle,
+    required this.startDate,
+    required this.endDate,
+    required this.color,
+    required this.icon,
+    required this.details,
+  });
+
+  @override
+  State<_CalendarSheet> createState() => _CalendarSheetState();
+}
+
+class _CalendarSheetState extends State<_CalendarSheet> {
+  late DateTime _displayMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayMonth = widget.startDate ?? DateTime.now();
+    // Normalize to first of month
+    _displayMonth = DateTime(_displayMonth.year, _displayMonth.month, 1);
+  }
+
+  bool _isInRange(DateTime day) {
+    if (widget.startDate == null || widget.endDate == null) return false;
+    final d = DateTime(day.year, day.month, day.day);
+    final s = DateTime(
+        widget.startDate!.year, widget.startDate!.month, widget.startDate!.day);
+    final e = DateTime(
+        widget.endDate!.year, widget.endDate!.month, widget.endDate!.day);
+    return !d.isBefore(s) && !d.isAfter(e);
+  }
+
+  bool _isStart(DateTime day) {
+    if (widget.startDate == null) return false;
+    return day.year == widget.startDate!.year &&
+        day.month == widget.startDate!.month &&
+        day.day == widget.startDate!.day;
+  }
+
+  bool _isEnd(DateTime day) {
+    if (widget.endDate == null) return false;
+    return day.year == widget.endDate!.year &&
+        day.month == widget.endDate!.month &&
+        day.day == widget.endDate!.day;
+  }
+
+  void _prevMonth() {
+    setState(() {
+      _displayMonth =
+          DateTime(_displayMonth.year, _displayMonth.month - 1, 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _displayMonth =
+          DateTime(_displayMonth.year, _displayMonth.month + 1, 1);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final daysInMonth =
+        DateUtils.getDaysInMonth(_displayMonth.year, _displayMonth.month);
+    final firstWeekday =
+        DateTime(_displayMonth.year, _displayMonth.month, 1).weekday; // 1=Mon
+    final totalCells = firstWeekday - 1 + daysInMonth;
+    final rows = (totalCells / 7).ceil();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: widget.color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(widget.icon, color: widget.color, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          widget.subtitle,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 24),
+            // Calendar
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                child: Column(
+                  children: [
+                    // Month navigation
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left),
+                          onPressed: _prevMonth,
+                        ),
+                        Text(
+                          _monthLabel(_displayMonth),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right),
+                          onPressed: _nextMonth,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Day labels
+                    Row(
+                      children: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+                          .map((d) => Expanded(
+                                child: Center(
+                                  child: Text(
+                                    d,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    // Calendar grid
+                    ...List.generate(rows, (row) {
+                      return Row(
+                        children: List.generate(7, (col) {
+                          final cellIndex = row * 7 + col;
+                          final dayNum =
+                              cellIndex - (firstWeekday - 1) + 1;
+                          if (dayNum < 1 || dayNum > daysInMonth) {
+                            return const Expanded(child: SizedBox(height: 44));
+                          }
+                          final day = DateTime(
+                              _displayMonth.year, _displayMonth.month, dayNum);
+                          final inRange = _isInRange(day);
+                          final isStart = _isStart(day);
+                          final isEnd = _isEnd(day);
+                          final isToday = _isSameDay(day, DateTime.now());
+
+                          return Expanded(
+                            child: Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: inRange
+                                    ? widget.color.withOpacity(0.15)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.horizontal(
+                                  left: isStart
+                                      ? const Radius.circular(22)
+                                      : Radius.zero,
+                                  right: isEnd
+                                      ? const Radius.circular(22)
+                                      : Radius.zero,
+                                ),
+                              ),
+                              child: Center(
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: (isStart || isEnd)
+                                        ? widget.color
+                                        : Colors.transparent,
+                                    shape: BoxShape.circle,
+                                    border: isToday && !isStart && !isEnd
+                                        ? Border.all(
+                                            color: widget.color, width: 1.5)
+                                        : null,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '$dayNum',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: (isStart || isEnd)
+                                            ? FontWeight.w800
+                                            : inRange
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                        color: (isStart || isEnd)
+                                            ? Colors.white
+                                            : inRange
+                                                ? widget.color
+                                                : AppTheme.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                    // Legend
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _LegendDot(color: widget.color, label: 'Active period'),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    // Details
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: widget.details
+                            .map((d) => Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 6),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        d.label,
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.textSecondary),
+                                      ),
+                                      Text(
+                                        d.value,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -257,396 +750,122 @@ class _StatItem extends StatelessWidget {
       ),
     );
   }
-}
 
-class _StatDivider extends StatelessWidget {
-  const _StatDivider();
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 1, height: 30, color: Colors.white12);
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  String _monthLabel(DateTime d) {
+    const months = [
+      'January', 'February', 'March', 'April',
+      'May', 'June', 'July', 'August',
+      'September', 'October', 'November', 'December',
+    ];
+    return '${months[d.month - 1]} ${d.year}';
   }
 }
 
-// ── Quick action item ──────────────────────────────────────────────
-class _QuickActionItem extends StatelessWidget {
-  final IconData icon;
+// ── Helper widgets ─────────────────────────────────────────────────────────
+class _DetailRow {
   final String label;
-  final Color bgColor;
-  final Color iconColor;
-  final VoidCallback onTap;
+  final String value;
+  const _DetailRow({required this.label, required this.value});
+}
 
-  const _QuickActionItem({
-    required this.icon,
-    required this.label,
-    required this.bgColor,
-    required this.iconColor,
-    required this.onTap,
-  });
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendDot({required this.color, required this.label});
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8EEF5)),
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          child: Column(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 10,
+          const SizedBox(width: 6),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12, color: AppTheme.textSecondary)),
+        ],
+      );
+}
+
+class _SectionLabel extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _SectionLabel(
+      {required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: color)),
+        ],
+      );
+}
+
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('📅', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 12),
+            const Text(
+              'No services or memberships yet',
+              style: TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF374151),
-                ),
-                textAlign: TextAlign.center,
-              ),
+                  color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Register to view your schedule here',
+              style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary.withOpacity(0.8)),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _ErrorView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: AppTheme.error, size: 40),
+              const SizedBox(height: 8),
+              Text(message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: AppTheme.textSecondary, fontSize: 13)),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                  onPressed: onRetry, child: const Text('Retry')),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ── AI Trainer Banner ─────────────────────────────────────────────
-class _AITrainerBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: AppTheme.brandGradient,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(
-              child: Text('🤖', style: TextStyle(fontSize: 24)),
-            ),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'PT AI tư vấn ngay',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Lên kế hoạch tập luyện cá nhân hóa cho bạn',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppTheme.primaryBlue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Thử ngay',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Section header ────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  const _SectionHeader({
-    required this.title,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A202C),
-          ),
-        ),
-        if (actionLabel != null)
-          GestureDetector(
-            onTap: onAction,
-            child: Text(
-              actionLabel!,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryBlue,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-// ── Booking Card ──────────────────────────────────────────────────
-class _BookingCard extends StatelessWidget {
-  final String trainerName;
-  final String specialty;
-  final String date;
-  final String time;
-  final String status;
-  final Color statusColor;
-  final String avatarEmoji;
-
-  const _BookingCard({
-    required this.trainerName,
-    required this.specialty,
-    required this.date,
-    required this.time,
-    required this.status,
-    required this.statusColor,
-    required this.avatarEmoji,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8EEF5)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: AppTheme.brandGradient,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Text(avatarEmoji, style: const TextStyle(fontSize: 22)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  trainerName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A202C),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  specialty,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      size: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      date,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(
-                      Icons.access_time,
-                      size: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      time,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Chevron
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F4F8),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: Color(0xFF6B7280),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Weekly Progress Card ──────────────────────────────────────────
-class _WeeklyProgressCard extends StatelessWidget {
-  const _WeeklyProgressCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8EEF5)),
-      ),
-      child: Column(
-        children: const [
-          _ProgressRow(label: 'Cardio', value: 0.75),
-          SizedBox(height: 12),
-          _ProgressRow(label: 'Sức mạnh', value: 0.60),
-          SizedBox(height: 12),
-          _ProgressRow(label: 'Linh hoạt', value: 0.90),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressRow extends StatelessWidget {
-  final String label;
-  final double value;
-  const _ProgressRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF4B5563),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: value,
-              minHeight: 7,
-              backgroundColor: const Color(0xFFE8EEF5),
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          '${(value * 100).toInt()}%',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A202C),
-          ),
-        ),
-      ],
-    );
-  }
+      );
 }

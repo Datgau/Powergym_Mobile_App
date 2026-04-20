@@ -4,8 +4,6 @@ import 'package:powergym_mobile_app/widgets/gradient_container.dart';
 import '../models/user_membership.dart';
 import '../models/user_service_registration.dart';
 import '../services/workout_service.dart';
-
-// ── Sealed union để biết item được chọn là loại nào ──────────────────────────
 abstract class _WorkoutItem {
   String get title;
   String get subtitle;
@@ -24,7 +22,7 @@ class _MembershipItem extends _WorkoutItem {
   _MembershipItem(this.m);
 
   @override String get title => m.packageName;
-  @override String get subtitle => 'Gói tập • ${m.duration} ngày';
+  @override String get subtitle => 'Package • ${m.duration} days';
   @override Color get color {
     if (m.color == null || m.color!.isEmpty) return AppTheme.primaryBlue;
     try { return Color(int.parse('FF${m.color!.replaceAll('#', '')}', radix: 16)); }
@@ -46,7 +44,7 @@ class _ServiceItem extends _WorkoutItem {
   @override String get title => sr.gymService.name;
   @override String get subtitle {
     final t = sr.trainer?.fullName;
-    return t != null && t.isNotEmpty ? 'Dịch vụ • PT $t' : 'Dịch vụ • ${sr.gymService.duration} ngày';
+    return t != null && t.isNotEmpty ? 'Service • PT $t' : 'Service • ${sr.gymService.duration} days';
   }
   @override Color get color => const Color(0xFF7C3AED);
   @override Set<DateTime> get markedDays => sr.bookedDays;
@@ -159,8 +157,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     labelStyle: const TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 14),
                     tabs: const [
-                      Tab(text: 'Đang hoạt động'),
-                      Tab(text: 'Lịch tập'),
+                      Tab(text: 'Active'),
+                      Tab(text: 'Schedule'),
                     ],
                   ),
                 ],
@@ -212,14 +210,14 @@ class _OverviewTab extends StatelessWidget {
           children: [
             Text('🏋️', style: TextStyle(fontSize: 48)),
             SizedBox(height: 12),
-            Text('Chưa có gói tập hoặc dịch vụ nào đang hoạt động',
+            Text('No active memberships or services available',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary)),
             SizedBox(height: 6),
-            Text('Hãy mua gói tập hoặc đăng ký dịch vụ để bắt đầu!',
+            Text('Purchase a membership or register for a service to get started!',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
           ],
@@ -227,7 +225,6 @@ class _OverviewTab extends StatelessWidget {
       );
     }
 
-    // Tách membership và service
     final memberships = items.whereType<_MembershipItem>().toList();
     final services = items.whereType<_ServiceItem>().toList();
 
@@ -237,25 +234,25 @@ class _OverviewTab extends StatelessWidget {
         if (memberships.isNotEmpty) ...[
           _SectionLabel(
               icon: Icons.card_membership_rounded,
-              label: 'Gói tập (${memberships.length})'),
+              label: 'Memberships (${memberships.length})'),
           const SizedBox(height: 12),
           ...memberships.map((item) => _WorkoutCard(
-                item: item,
-                isSelected: selected == item,
-                onTap: () => onSelect(item),
-              )),
+            item: item,
+            isSelected: selected == item,
+            onTap: () => onSelect(item),
+          )),
           const SizedBox(height: 8),
         ],
         if (services.isNotEmpty) ...[
           _SectionLabel(
               icon: Icons.fitness_center_rounded,
-              label: 'Dịch vụ (${services.length})'),
+              label: 'Services (${services.length})'),
           const SizedBox(height: 12),
           ...services.map((item) => _WorkoutCard(
-                item: item,
-                isSelected: selected == item,
-                onTap: () => onSelect(item),
-              )),
+            item: item,
+            isSelected: selected == item,
+            onTap: () => onSelect(item),
+          )),
         ],
       ],
     );
@@ -361,7 +358,7 @@ class _WorkoutCard extends StatelessWidget {
                     color: AppTheme.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('Đang hoạt động',
+                  child: const Text('Active',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -389,12 +386,12 @@ class _WorkoutCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('${item.daysElapsed} / ${item.duration} ngày',
+                Text('${item.daysElapsed} / ${item.duration} days',
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textSecondary)),
-                Text('Còn ${item.daysRemaining} ngày',
+                Text('${item.daysRemaining} days left',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -429,7 +426,7 @@ class _WorkoutCard extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: onTap,
                 icon: const Icon(Icons.calendar_month_rounded, size: 15),
-                label: const Text('Xem lịch tập'),
+                label: const Text('View workout schedule'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: color,
                   foregroundColor: Colors.white,
@@ -505,7 +502,7 @@ class _CalendarTabState extends State<_CalendarTab> {
   Widget build(BuildContext context) {
     if (widget.selected == null) {
       return const Center(
-        child: Text('Chọn một gói hoặc dịch vụ để xem lịch',
+        child: Text('Select an item to view the schedule',
             style: TextStyle(color: AppTheme.textSecondary)),
       );
     }
@@ -545,9 +542,9 @@ class _CalendarTabState extends State<_CalendarTab> {
                           color: item.color)),
                 ),
                 Text(
-                  isMembership
-                      ? '${item.daysElapsed} ngày đã tập'
-                      : '${markedSet.length} buổi đã đặt',
+                  isMembership?
+                      '${item.daysElapsed} days completed'
+                      : '${markedSet.length} sessions booked',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -626,12 +623,12 @@ class _CalendarTabState extends State<_CalendarTab> {
             spacing: 20,
             runSpacing: 8,
             children: [
-              _LegendDot(color: item.color, label: isMembership ? 'Đã tập' : 'Có lịch'),
+              _LegendDot(color: item.color, label: isMembership ? 'Completed' : 'Scheduled'),
               const _LegendDot(
                   color: Color(0xFFE8EEF5),
-                  label: 'Trong gói',
+                  label: 'In plan',
                   textColor: Color.fromARGB(255, 102, 102, 102)),
-              _LegendDot(color: AppTheme.warning, label: 'Hôm nay'),
+              _LegendDot(color: AppTheme.warning, label: 'Today'),
             ],
           ),
         ],
@@ -702,9 +699,9 @@ class _CalendarTabState extends State<_CalendarTab> {
 
   String _monthName(DateTime d) {
     const months = [
-      'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4',
-      'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8',
-      'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12',
+      'January', 'February', 'March', 'April',
+      'May', 'June', 'July', 'August',
+      'September', 'October', 'November', 'December',
     ];
     return '${months[d.month - 1]} ${d.year}';
   }
@@ -754,7 +751,7 @@ class _ErrorView extends StatelessWidget {
                   style: const TextStyle(color: AppTheme.textSecondary)),
               const SizedBox(height: 16),
               ElevatedButton(
-                  onPressed: onRetry, child: const Text('Thử lại')),
+                  onPressed: onRetry, child: const Text('Reload')),
             ],
           ),
         ),

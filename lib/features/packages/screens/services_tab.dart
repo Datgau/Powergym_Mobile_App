@@ -41,7 +41,7 @@ class _ServicesTabState extends State<ServicesTab> {
             style: const TextStyle(fontSize: 13),
             onChanged: (v) => setState(() => _query = v.toLowerCase()),
             decoration: InputDecoration(
-              hintText: 'Tìm dịch vụ...',
+              hintText: 'Search services...',
               hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
               prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
               suffixIcon: _query.isNotEmpty
@@ -79,7 +79,7 @@ class _ServicesTabState extends State<ServicesTab> {
               }
               if (snapshot.hasError) {
                 return _ErrorView(
-                  message: 'Không thể tải dịch vụ',
+                  message: 'Could not load services',
                   onRetry: () => setState(() => _future = _api.getActiveServices()),
                 );
               }
@@ -98,7 +98,7 @@ class _ServicesTabState extends State<ServicesTab> {
                     children: [
                       Text('🏋️', style: TextStyle(fontSize: 36)),
                       SizedBox(height: 8),
-                      Text('Chưa có dịch vụ nào',
+                      Text('No services available',
                           style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
                     ],
                   ),
@@ -106,7 +106,7 @@ class _ServicesTabState extends State<ServicesTab> {
               }
               if (services.isEmpty) {
                 return Center(
-                  child: Text('Không tìm thấy "$_query"',
+                  child: Text('No results for "$_query"',
                       style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
                 );
               }
@@ -230,7 +230,7 @@ class _ServiceCard extends StatelessWidget {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                         ),
-                        child: const Text('Đăng ký'),
+                        child: const Text('Register'),
                       ),
                     ),
                   ],
@@ -306,7 +306,7 @@ class _ErrorView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(message, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: onRetry, child: const Text('Thử lại')),
+          ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );

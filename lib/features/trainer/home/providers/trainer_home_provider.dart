@@ -11,12 +11,14 @@ class TrainerHomeProvider extends ChangeNotifier {
   TrainerHomeStatus _status = TrainerHomeStatus.idle;
   String _error = '';
   TrainerStats _stats = TrainerStats.empty();
+  TrainerSalaryData _salary = TrainerSalaryData.empty();
   List<TrainerBookingItem> _pending = [];
   List<TrainerBookingItem> _upcoming = [];
 
   TrainerHomeStatus get status => _status;
   String get error => _error;
   TrainerStats get stats => _stats;
+  TrainerSalaryData get salary => _salary;
   List<TrainerBookingItem> get pendingBookings => _pending;
   List<TrainerBookingItem> get upcomingBookings => _upcoming;
   bool get isLoading => _status == TrainerHomeStatus.loading;
@@ -30,10 +32,12 @@ class TrainerHomeProvider extends ChangeNotifier {
         _service.getPendingBookings(trainerId),
         _service.getUpcomingBookings(trainerId),
         _service.getStatistics(trainerId),
+        _service.getSalary(trainerId),
       ]);
       _pending  = results[0] as List<TrainerBookingItem>;
       _upcoming = results[1] as List<TrainerBookingItem>;
       _stats    = results[2] as TrainerStats;
+      _salary   = results[3] as TrainerSalaryData;
       _status   = TrainerHomeStatus.loaded;
     } catch (e) {
       _error  = Api.parseError(e);
@@ -59,6 +63,25 @@ class TrainerHomeProvider extends ChangeNotifier {
     } catch (e) {
       _error = Api.parseError(e);
       notifyListeners();
+    }
+  }
+
+  Future<void> submitLeaveRequest({
+    required int trainerId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required String reason,
+  }) async {
+    try {
+      await _service.submitLeaveRequest(
+        trainerId: trainerId,
+        startDate: startDate,
+        endDate: endDate,
+        reason: reason,
+      );
+    } catch (e) {
+      _error = Api.parseError(e);
+      rethrow;
     }
   }
 }

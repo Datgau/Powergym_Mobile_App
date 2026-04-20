@@ -13,6 +13,23 @@ class Api {
   static const Duration _connectTimeout = Duration(seconds: 15);
   static const Duration _receiveTimeout = Duration(seconds: 20);
 
+  // ─── In-memory token cache (avoids SharedPreferences race condition) ──────
+  static String? _cachedToken;
+  static String? _cachedRefreshToken;
+
+  static void cacheTokens({required String accessToken, String? refreshToken}) {
+    _cachedToken = accessToken;
+    if (refreshToken != null) _cachedRefreshToken = refreshToken;
+  }
+
+  static void clearCachedTokens() {
+    _cachedToken = null;
+    _cachedRefreshToken = null;
+  }
+
+  static String? get cachedToken => _cachedToken;
+  static String? get cachedRefreshToken => _cachedRefreshToken;
+
   // ─── Dio instances ────────────────────────────────────────────────────────
 
   /// No auth header — for login, register, public endpoints.
@@ -82,8 +99,9 @@ class _AuthInterceptor extends Interceptor {
   final AuthStorage _storage = AuthStorage();
   final Dio _dio;
 
-  // Tránh vòng lặp vô hạn khi refresh cũng trả 401
-  bool _isRefreshing = false;
+  // Static flag to prevent multiple simultaneous refresh attempts
+  static bool _isRefreshing = false;
+  static final List<Function> _pendingRequests = [];
 
   _AuthInterceptor(this._dio);
 
@@ -92,7 +110,8 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _storage.getToken();
+    // Use in-memory cache first to avoid SharedPreferences race condition
+    final token = Api.cachedToken ?? await _storage.getToken();
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -104,35 +123,63 @@ class _AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401 && !_isRefreshing) {
-      _isRefreshing = true;
-      try {
-        final refreshed = await _tryRefresh();
-        if (refreshed) {
-          // Retry request gốc với token mới
-          final newToken = await _storage.getToken();
-          final opts = err.requestOptions;
-          opts.headers['Authorization'] = 'Bearer $newToken';
+    if (err.response?.statusCode != 401) {
+      handler.next(err);
+      return;
+    }
 
+    // Already refreshing — just pass the error through, don't logout
+    if (_isRefreshing) {
+      handler.next(err);
+      return;
+    }
+
+    _isRefreshing = true;
+    try {
+      final refreshed = await _tryRefresh();
+      if (refreshed) {
+        final newToken = Api.cachedToken ?? await _storage.getToken();
+        final opts = err.requestOptions;
+        opts.headers['Authorization'] = 'Bearer $newToken';
+        final retryResponse = await _dio.fetch(opts);
+        handler.resolve(retryResponse);
+        return;
+      }
+
+      // Refresh failed — only logout if no token in memory
+      // (prevents logout on transient 401 right after login)
+      final memToken = Api.cachedToken;
+      if (memToken != null && memToken.isNotEmpty) {
+        // Token exists in memory — retry once, don't logout
+        try {
+          final opts = err.requestOptions;
+          opts.headers['Authorization'] = 'Bearer $memToken';
           final retryResponse = await _dio.fetch(opts);
-          _isRefreshing = false;
           handler.resolve(retryResponse);
           return;
+        } catch (_) {
+          // Retry failed too — pass error through without logout
+          handler.next(err);
+          return;
         }
-      } catch (_) {}
+      }
 
-      // Refresh thất bại → logout
-      _isRefreshing = false;
+      // No token at all — session truly expired, logout
       await _storage.clearSession();
+      Api.clearCachedTokens();
       AppNavigator.goToLogin();
+      handler.next(err);
+    } catch (_) {
+      handler.next(err);
+    } finally {
+      _isRefreshing = false;
     }
-    handler.next(err);
   }
 
   /// Gọi /auth/refresh-token-mobile, lưu token mới.
   /// Trả về true nếu thành công.
   Future<bool> _tryRefresh() async {
-    final refreshToken = await _storage.getRefreshToken();
+    final refreshToken = Api.cachedRefreshToken ?? await _storage.getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) return false;
 
     try {
@@ -162,6 +209,7 @@ class _AuthInterceptor extends Interceptor {
 
         if (newAccessToken != null && newAccessToken.isNotEmpty) {
           await _storage.updateAccessToken(newAccessToken);
+          Api.cacheTokens(accessToken: newAccessToken, refreshToken: newRefreshToken);
           if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
             await _storage.updateRefreshToken(newRefreshToken);
           }

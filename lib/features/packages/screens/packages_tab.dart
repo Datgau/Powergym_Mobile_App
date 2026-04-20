@@ -63,7 +63,7 @@ class _PackagesTabState extends State<PackagesTab> {
             style: const TextStyle(fontSize: 13),
             onChanged: (v) => setState(() => _query = v.toLowerCase()),
             decoration: InputDecoration(
-              hintText: 'Tìm gói tập...',
+              hintText: 'Search memberships...',
               hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
               prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
               suffixIcon: _query.isNotEmpty
@@ -101,7 +101,7 @@ class _PackagesTabState extends State<PackagesTab> {
               }
               if (snap.hasError) {
                 return Center(
-                  child: Text('Lỗi: ${snap.error}',
+                  child: Text('Error: ${snap.error}',
                       style: const TextStyle(color: Colors.red, fontSize: 13)),
                 );
               }
@@ -114,12 +114,12 @@ class _PackagesTabState extends State<PackagesTab> {
 
               if (all.isEmpty) {
                 return const Center(
-                    child: Text('Hiện không có gói tập nào.',
+                    child: Text('No membership packages available.',
                         style: TextStyle(fontSize: 13)));
               }
               if (packages.isEmpty) {
                 return Center(
-                  child: Text('Không tìm thấy "$_query"',
+                  child: Text('No results for "$_query"',
                       style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
                 );
               }
@@ -250,7 +250,7 @@ class _PlanCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (isRegistered) ...[const Icon(Icons.check_circle, size: 13), const SizedBox(width: 4)],
-                        Text(isRegistered ? 'Đã đăng ký' : 'Mua ngay'),
+                        Text(isRegistered ? 'Registered' : 'Buy Now'),
                       ],
                     ),
                   ),
@@ -271,7 +271,7 @@ class _PlanCard extends StatelessWidget {
                   child: const Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.check_circle, color: Colors.white, size: 10),
                     SizedBox(width: 3),
-                    Text('ĐÃ ĐĂNG KÝ', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                    Text('REGISTERED', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
                   ]),
                 )
               : package.isPopular
@@ -281,7 +281,7 @@ class _PlanCard extends StatelessWidget {
                         color: color,
                         borderRadius: const BorderRadius.only(topRight: Radius.circular(12), bottomLeft: Radius.circular(8)),
                       ),
-                      child: const Text('PHỔ BIẾN', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                      child: const Text('POPULAR', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
                     )
                   : const SizedBox.shrink(),
         ),
@@ -342,7 +342,7 @@ class _PlanCardWide extends StatelessWidget {
                           child: const Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(Icons.check_circle, color: Colors.white, size: 9),
                             SizedBox(width: 2),
-                            Text('ĐÃ ĐĂNG KÝ', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+                            Text('REGISTERED', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
                           ]),
                         ),
                     ],
@@ -394,7 +394,7 @@ class _PlanCardWide extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                     ),
-                    child: Text(isRegistered ? 'Đã đăng ký' : 'Nâng cấp'),
+                    child: Text(isRegistered ? 'Registered' : 'Upgrade'),
                   ),
                 ),
               ],

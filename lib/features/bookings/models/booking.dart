@@ -67,15 +67,15 @@ class TrainerBooking {
   String get statusText {
     switch (status) {
       case 'PENDING':
-        return 'Chờ xác nhận';
+        return 'Pending';
       case 'CONFIRMED':
-        return 'Đã xác nhận';
+        return 'Confirm';
       case 'REJECTED':
-        return 'Đã từ chối';
+        return 'Rejected';
       case 'CANCELLED':
-        return 'Đã hủy';
+        return 'Cancelled';
       case 'COMPLETED':
-        return 'Hoàn thành';
+        return 'Completed';
       default:
         return status;
     }

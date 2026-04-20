@@ -4,6 +4,7 @@ import 'package:powergym_mobile_app/config/theme.dart';
 import 'package:powergym_mobile_app/widgets/gradient_container.dart';
 import '../models/client_model.dart';
 import '../providers/clients_provider.dart';
+import 'client_detail_screen.dart';
 
 class ClientsTab extends StatefulWidget {
   const ClientsTab({super.key});
@@ -116,66 +117,83 @@ class _ClientCard extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8EEF5)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
-        ),
-        child: Row(
-          children: [
-            // Avatar
-            Container(
-              width: 50, height: 50,
-              decoration: BoxDecoration(gradient: AppTheme.brandGradient, shape: BoxShape.circle),
-              child: client.avatar != null
-                  ? ClipOval(
-                      child: Image.network(
-                        client.avatar!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _avatarFallback(client.fullName),
-                      ),
-                    )
-                  : _avatarFallback(client.fullName),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ClientDetailScreen(client: client),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE8EEF5)),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
+          ),
+          child: Row(
+            children: [
+              // Avatar
+              Container(
+                width: 50, height: 50,
+                decoration: BoxDecoration(gradient: AppTheme.brandGradient, shape: BoxShape.circle),
+                child: client.avatar != null
+                    ? ClipOval(
+                        child: Image.network(
+                          client.avatar!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _avatarFallback(client.fullName),
+                        ),
+                      )
+                    : _avatarFallback(client.fullName),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Icon(Icons.fitness_center, size: 12, color: AppTheme.primaryBlue),
+                      const SizedBox(width: 4),
+                      Flexible(child: Text(client.serviceName,
+                          style: const TextStyle(fontSize: 14, color: AppTheme.primaryBlue, fontWeight: FontWeight.w700),
+                          overflow: TextOverflow.ellipsis)),
+                    ]),
+                    Text(client.fullName,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                    const SizedBox(height: 3),
+                     Text(client.email,
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppTheme.textPrimary)),
+                    const SizedBox(height: 3),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(children: [
-                    const Icon(Icons.fitness_center, size: 12, color: AppTheme.primaryBlue),
-                    const SizedBox(width: 4),
-                    Flexible(child: Text(client.serviceName,
-                        style: const TextStyle(fontSize: 14, color: AppTheme.primaryBlue, fontWeight: FontWeight.w700),
-                        overflow: TextOverflow.ellipsis)),
-                  ]),
-                  Text(client.fullName,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-                  const SizedBox(height: 3),
-                   Text(client.email,
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppTheme.textPrimary)),
-                  const SizedBox(height: 3),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: client.isActive ? AppTheme.success.withOpacity(0.1) : AppTheme.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      client.isActive ? 'Active' : 'Inactive',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: client.isActive ? AppTheme.success : AppTheme.error),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
                 ],
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: client.isActive ? AppTheme.success.withOpacity(0.1) : AppTheme.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                client.isActive ? 'Active' : 'Inactive',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: client.isActive ? AppTheme.success : AppTheme.error),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
 }

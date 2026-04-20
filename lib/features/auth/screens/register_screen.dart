@@ -38,6 +38,7 @@ class _AuthRegisterScreenState extends State<AuthRegisterScreen> {
       fullName: _nameCtrl.text.trim(),
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
+      confirmPassword: _confirmCtrl.text,
     );
 
     if (ok && mounted) {
@@ -58,6 +59,21 @@ class _AuthRegisterScreenState extends State<AuthRegisterScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              // Back button
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                    color: AppTheme.textPrimary,
+                    onPressed: () {
+                      context.read<AuthProvider>().clearError();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
               const AuthHeader(
                 title: 'Create Account',
                 subtitle: 'Join PowerGym today',

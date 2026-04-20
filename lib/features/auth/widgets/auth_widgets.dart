@@ -226,8 +226,8 @@ class OtpInput extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: List.generate(6, (i) {
         return SizedBox(
-          width: 46,
-          height: 56,
+          width: 48,
+          height: 58,
           child: TextFormField(
             controller: controllers[i],
             focusNode: focusNodes[i],
@@ -238,14 +238,20 @@ class OtpInput extends StatelessWidget {
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: AppTheme.textPrimary,
+              height: 1.2,
             ),
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: Colors.grey[100],
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: const BorderSide(color: Color(0xFFD1D5DB), width: 1.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFD1D5DB), width: 1.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),

@@ -14,6 +14,8 @@ class HomeProvider extends ChangeNotifier {
   UserProfile? _profile;
   List<TrainerBookingItem> _bookings = [];
   List<MembershipPackageItem> _packages = [];
+  List<ServiceRegistrationItem> _serviceRegistrations = [];
+  List<ActiveMembershipItem> _activeMemberships = [];
 
   HomeStatus get status => _status;
   String get error => _error;
@@ -22,9 +24,11 @@ class HomeProvider extends ChangeNotifier {
   List<TrainerBookingItem> get upcomingBookings =>
       _bookings.where((b) => b.isUpcoming).take(3).toList();
   List<MembershipPackageItem> get packages => _packages;
+  List<ServiceRegistrationItem> get serviceRegistrations => _serviceRegistrations;
+  List<ActiveMembershipItem> get activeMemberships => _activeMemberships;
+  int get activeServiceCount => _serviceRegistrations.where((s) => s.isActive).length;
+  int get activeMembershipCount => _activeMemberships.length;
   bool get isLoading => _status == HomeStatus.loading;
-
-  // ─── Load all home data in parallel ──────────────────────────────────────
 
   Future<void> loadAll() async {
     _status = HomeStatus.loading;
@@ -32,15 +36,17 @@ class HomeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await Future.wait([
-        _api.getProfile(),
-        _api.getMyBookings(),
-        _api.getActivePackages(),
-      ]);
-
-      _profile = results[0] as UserProfile;
-      _bookings = results[1] as List<TrainerBookingItem>;
-      _packages = results[2] as List<MembershipPackageItem>;
+      _profile = await _api.getProfile();
+      _bookings = await _api.getMyBookings();
+      _packages = await _api.getActivePackages();
+      _serviceRegistrations = await _api.getMyServiceRegistrations();
+      // Active memberships — non-fatal if it fails
+      try {
+        _activeMemberships = await _api.getMyActiveMemberships();
+      } catch (e) {
+        _activeMemberships = [];
+        debugPrint('[HomeProvider] getMyActiveMemberships failed: $e');
+      }
       _status = HomeStatus.loaded;
     } catch (e) {
       _error = Api.parseError(e);
@@ -49,8 +55,6 @@ class HomeProvider extends ChangeNotifier {
 
     notifyListeners();
   }
-
-  // ─── Refresh individual sections ─────────────────────────────────────────
 
   Future<void> refreshBookings() async {
     try {

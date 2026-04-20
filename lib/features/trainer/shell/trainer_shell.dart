@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
 import '../home/providers/trainer_home_provider.dart';
 import '../home/screens/trainer_home_tab.dart';
-import '../clients/providers/clients_provider.dart';
-import '../clients/screens/clients_tab.dart';
 import '../schedule/providers/schedule_provider.dart';
 import '../schedule/screens/schedule_tab.dart';
 import '../earnings/providers/earnings_provider.dart';
@@ -37,7 +35,6 @@ class _TrainerShellState extends State<TrainerShell> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => TrainerHomeProvider()),
-        ChangeNotifierProvider(create: (_) => ClientsProvider()),
         ChangeNotifierProvider(create: (_) => ScheduleProvider()),
         ChangeNotifierProvider(create: (_) => EarningsProvider()),
       ],
@@ -88,10 +85,9 @@ class _TrainerShellBodyState extends State<_TrainerShellBody> {
           index: idx,
           children: [
             TrainerHomeTab(onTabChange: (i) => widget.tab.value = i),
-            const ClientsTab(),
             const ScheduleTab(),
-            const TrainerNotificationsScreen(),
             const EarningsTab(),
+            const TrainerNotificationsScreen(),
             const TrainerProfileTab(),
           ],
         ),
@@ -127,17 +123,17 @@ class _TrainerShellBodyState extends State<_TrainerShellBody> {
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.home_outlined),
                     activeIcon: Icon(Icons.home_rounded),
-                    label: 'Trang chủ',
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.people_outline),
-                    activeIcon: Icon(Icons.people_rounded),
-                    label: 'Học viên',
+                    label: 'Home',
                   ),
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.calendar_month_outlined),
                     activeIcon: Icon(Icons.calendar_month_rounded),
-                    label: 'Lịch tập',
+                    label: 'Schedule',
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.account_balance_wallet_outlined),
+                    activeIcon: Icon(Icons.account_balance_wallet_rounded),
+                    label: 'Earnings',
                   ),
                   // Tab thông báo với badge
                   BottomNavigationBarItem(
@@ -145,17 +141,12 @@ class _TrainerShellBodyState extends State<_TrainerShellBody> {
                         count: notifProvider.unreadCount, active: false),
                     activeIcon: _NotifBadge(
                         count: notifProvider.unreadCount, active: true),
-                    label: 'Thông báo',
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.account_balance_wallet_outlined),
-                    activeIcon: Icon(Icons.account_balance_wallet_rounded),
-                    label: 'Thu nhập',
+                    label: 'Notifications',
                   ),
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.person_outline),
                     activeIcon: Icon(Icons.person_rounded),
-                    label: 'Cá nhân',
+                    label: 'Profile',
                   ),
                 ],
               ),

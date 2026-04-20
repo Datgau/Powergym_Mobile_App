@@ -10,6 +10,77 @@ class TrainerDashboard {
   });
 }
 
+class TrainerSalaryData {
+  final int trainerId;
+  final String trainerName;
+  final double totalSalary;
+  final List<ServiceSalaryDetail> serviceBreakdown;
+  final String calculatedAt;
+
+  const TrainerSalaryData({
+    required this.trainerId,
+    required this.trainerName,
+    required this.totalSalary,
+    required this.serviceBreakdown,
+    required this.calculatedAt,
+  });
+
+  factory TrainerSalaryData.fromJson(Map<String, dynamic> json) {
+    final breakdownList = json['serviceBreakdown'] as List? ?? [];
+    return TrainerSalaryData(
+      trainerId: json['trainerId'] as int? ?? 0,
+      trainerName: json['trainerName'] as String? ?? '',
+      totalSalary: (json['totalSalary'] as num?)?.toDouble() ?? 0.0,
+      serviceBreakdown: breakdownList
+          .map((e) => ServiceSalaryDetail.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      calculatedAt: json['calculatedAt'] as String? ?? '',
+    );
+  }
+
+  factory TrainerSalaryData.empty() => const TrainerSalaryData(
+        trainerId: 0,
+        trainerName: '',
+        totalSalary: 0.0,
+        serviceBreakdown: [],
+        calculatedAt: '',
+      );
+  
+  // Helper to get total clients from service breakdown
+  int get totalClients {
+    return serviceBreakdown.fold<int>(0, (sum, service) => sum + service.studentCount);
+  }
+}
+
+class ServiceSalaryDetail {
+  final int serviceId;
+  final String serviceName;
+  final int studentCount;
+  final double servicePrice;
+  final double trainerPercentage;
+  final double salaryAmount;
+
+  const ServiceSalaryDetail({
+    required this.serviceId,
+    required this.serviceName,
+    required this.studentCount,
+    required this.servicePrice,
+    required this.trainerPercentage,
+    required this.salaryAmount,
+  });
+
+  factory ServiceSalaryDetail.fromJson(Map<String, dynamic> json) {
+    return ServiceSalaryDetail(
+      serviceId: json['serviceId'] as int? ?? 0,
+      serviceName: json['serviceName'] as String? ?? '',
+      studentCount: json['studentCount'] as int? ?? 0,
+      servicePrice: (json['servicePrice'] as num?)?.toDouble() ?? 0.0,
+      trainerPercentage: (json['trainerPercentage'] as num?)?.toDouble() ?? 0.0,
+      salaryAmount: (json['salaryAmount'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
 class TrainerStats {
   final int totalClients;
   final int pendingBookings;
@@ -28,11 +99,11 @@ class TrainerStats {
   });
 
   factory TrainerStats.fromJson(Map<String, dynamic> json) => TrainerStats(
-        totalClients: json['totalClients'] as int? ?? 0,
+        totalClients: json['uniqueClients'] as int? ?? json['totalClients'] as int? ?? 0,
         pendingBookings: json['pendingBookings'] as int? ?? 0,
         upcomingBookings: json['upcomingBookings'] as int? ?? 0,
         completedBookings: json['completedBookings'] as int? ?? 0,
-        totalEarnings: (json['totalEarnings'] as num?)?.toDouble() ?? 0,
+        totalEarnings: (json['totalRevenue'] as num?)?.toDouble() ?? (json['totalEarnings'] as num?)?.toDouble() ?? 0,
         averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0,
       );
 
@@ -97,11 +168,11 @@ class TrainerBookingItem {
 
   String get statusLabel {
     switch (status) {
-      case 'PENDING':   return 'Chờ xác nhận';
-      case 'CONFIRMED': return 'Đã xác nhận';
-      case 'COMPLETED': return 'Hoàn thành';
-      case 'CANCELLED': return 'Đã hủy';
-      case 'REJECTED':  return 'Đã từ chối';
+      case 'CONFIRMED': return 'Confirmed';
+      case 'PENDING':   return 'Pending confirmation';
+      case 'CANCELLED': return 'Cancelled';
+      case 'COMPLETED': return 'Completed';
+      case 'REJECTED':  return 'Rejected';
       default:          return status;
     }
   }
