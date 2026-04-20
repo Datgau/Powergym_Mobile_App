@@ -7,6 +7,7 @@ import '../../bookings/screens/bookings_tab.dart';
 import '../../packages/screens/packages_with_tabs.dart';
 import '../../notifications/screens/notifications_tab.dart';
 import '../../profile/screens/profile_tab.dart';
+import '../../ai_chat/widgets/ai_chat_popup.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -38,14 +39,20 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       valueListenable: _tabNotifier,
       builder: (context, selectedIndex, _) {
         return Scaffold(
-          body: IndexedStack(
-            index: selectedIndex,
+          body: Stack(
             children: [
-              HomeTab(onTabChange: (i) => _tabNotifier.value = i),
-              const BookingsTab(),
-              const PackagesWithTabsScreen(),
-              const NotificationsTab(),
-              const ProfileTab(),
+              IndexedStack(
+                index: selectedIndex,
+                children: [
+                  HomeTab(onTabChange: (i) => _tabNotifier.value = i),
+                  const BookingsTab(),
+                  const PackagesWithTabsScreen(),
+                  const NotificationsTab(),
+                  const ProfileTab(),
+                ],
+              ),
+              // AI Chat Popup
+              const AiChatPopup(),
             ],
           ),
           bottomNavigationBar: Container(

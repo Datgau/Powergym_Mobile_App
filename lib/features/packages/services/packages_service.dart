@@ -36,11 +36,4 @@ class PackagesService {
       return {};
     }
   }
-
-  // POST /user/memberships/counter — đăng ký gói tập thanh toán tại quầy
-  Future<void> registerCounterMembership({required int packageId}) async {
-    await Api.private.post('/user/memberships/counter', data: {
-      'packageId': packageId,
-    });
-  }
 }

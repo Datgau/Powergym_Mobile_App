@@ -423,7 +423,7 @@ class _ServiceScheduleCard extends StatelessWidget {
             _DetailRow(label: 'Price', value: item.formattedPrice),
           if (item.duration != null)
             _DetailRow(
-                label: 'Duration', value: '${item.duration} min/session'),
+                label: 'Duration', value: '${item.duration} days/session'),
         ],
       ),
     );

@@ -8,6 +8,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/home/providers/home_provider.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/trainer/providers/trainer_notification_provider.dart';
+import 'features/ai_chat/demo/ai_chat_demo.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,7 @@ class PowerGymApp extends StatelessWidget {
         routes: {
           '/login': (_) => const AuthLoginScreen(),
           '/home': (_) => const UserHomeScreen(),
+          '/ai-chat-demo': (_) => const AiChatDemo(),
         },
       ),
     );

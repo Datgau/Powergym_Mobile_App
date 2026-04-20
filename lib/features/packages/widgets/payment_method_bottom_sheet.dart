@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/membership_package.dart';
 import '../services/bank_payment_service.dart';
-import '../services/packages_service.dart';
 import '../screens/bank_payment_screen.dart';
 import 'package:powergym_mobile_app/config/theme.dart';
 import 'package:powergym_mobile_app/core/network/api.dart';
-import 'package:powergym_mobile_app/core/network/app_navigator.dart';
 
 class PaymentMethodBottomSheet extends StatefulWidget {
   final MembershipPackage package;
@@ -25,7 +23,6 @@ class PaymentMethodBottomSheet extends StatefulWidget {
 class _PaymentMethodBottomSheetState
     extends State<PaymentMethodBottomSheet> {
   final BankPaymentService _bankService = BankPaymentService();
-  final PackagesService _packagesService = PackagesService();
   bool _isLoading = false;
   String? _loadingMethod;
 
@@ -72,68 +69,7 @@ class _PaymentMethodBottomSheetState
     }
   }
 
-  // ── Thanh toán tại quầy ──────────────────────────────────────────────────
-  Future<void> _handleCounter() async {
-    // Bước 1: Popup xác nhận
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Pay at counter',
-            style: TextStyle(fontWeight: FontWeight.w700)),
-        content: Text(
-          'You will register for "${widget.package.name}" and pay in person at the front desk.\n\nConfirm?',
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF059669),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
 
-    setState(() { _isLoading = true; _loadingMethod = 'COUNTER'; });
-    try {
-      await _packagesService.registerCounterMembership(
-        packageId: widget.package.id,
-      );
-      if (!mounted) return;
-      widget.onPaymentSuccess?.call();
-
-      // Đóng hết tất cả modal/bottom sheet, về lại trang gói tập
-      Navigator.popUntil(context, (route) => route.isFirst);
-
-      // Hiện snackbar thông báo
-      ScaffoldMessenger.of(AppNavigator.key.currentContext!).showSnackBar(
-        SnackBar(
-          content: Text(
-              '✅ Registered "${widget.package.name}". Please visit the front desk to complete payment.'),
-          backgroundColor: AppTheme.success,
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(Api.parseError(e)), backgroundColor: AppTheme.error),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -213,18 +149,6 @@ class _PaymentMethodBottomSheetState
               isLoading: _isLoading && _loadingMethod == 'BANK',
               disabled: _isLoading,
               onTap: _handleBankTransfer,
-            ),
-            const SizedBox(height: 12),
-
-            // Thanh toán tại quầy
-            _PaymentOptionCard(
-              icon: Icons.store_rounded,
-              iconColor: const Color(0xFF059669),
-              title: 'Pay at counter',
-              subtitle: 'Visit the front desk to complete payment',
-              isLoading: _isLoading && _loadingMethod == 'COUNTER',
-              disabled: _isLoading,
-              onTap: _handleCounter,
             ),
           ],
         ),
