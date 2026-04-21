@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
+import '../widgets/social_login_buttons.dart';
 import 'otp_screen.dart';
 
 class AuthRegisterScreen extends StatefulWidget {
@@ -204,6 +205,10 @@ class _AuthRegisterScreenState extends State<AuthRegisterScreen> {
                           onPressed: p.isLoading ? null : _submit,
                         ),
                       ),
+                      const SizedBox(height: 24),
+
+                      // Social Login Buttons
+                      const SocialLoginButtons(),
                       const SizedBox(height: 24),
 
                       // Login link

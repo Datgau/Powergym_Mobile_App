@@ -3,8 +3,9 @@ import '../models/chat_models.dart';
 
 class ServiceCardWidget extends StatefulWidget {
   final ServiceCard service;
+  final Function(int)? onTabChange;
 
-  const ServiceCardWidget({super.key, required this.service});
+  const ServiceCardWidget({super.key, required this.service, this.onTabChange});
 
   @override
   State<ServiceCardWidget> createState() => _ServiceCardWidgetState();
@@ -53,9 +54,10 @@ class _ServiceCardWidgetState extends State<ServiceCardWidget>
             onTapUp: (_) {
               setState(() => _isPressed = false);
               _controller.reverse();
-              // Navigate to packages tab
-              Navigator.pop(context); // Close chat
-              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              // Navigate to services tab (index 2 - PackagesWithTabsScreen)
+              if (widget.onTabChange != null) {
+                widget.onTabChange!(2);
+              }
             },
             onTapCancel: () {
               setState(() => _isPressed = false);
@@ -199,8 +201,9 @@ class _ServiceCardWidgetState extends State<ServiceCardWidget>
 
 class MembershipCardWidget extends StatefulWidget {
   final MembershipCard membership;
+  final Function(int)? onTabChange;
 
-  const MembershipCardWidget({super.key, required this.membership});
+  const MembershipCardWidget({super.key, required this.membership, this.onTabChange});
 
   @override
   State<MembershipCardWidget> createState() => _MembershipCardWidgetState();
@@ -249,9 +252,10 @@ class _MembershipCardWidgetState extends State<MembershipCardWidget>
             onTapUp: (_) {
               setState(() => _isPressed = false);
               _controller.reverse();
-              // Navigate to packages tab
-              Navigator.pop(context); // Close chat
-              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              // Navigate to membership packages tab (index 2 - PackagesWithTabsScreen)
+              if (widget.onTabChange != null) {
+                widget.onTabChange!(2);
+              }
             },
             onTapCancel: () {
               setState(() => _isPressed = false);
@@ -445,8 +449,9 @@ class _MembershipCardWidgetState extends State<MembershipCardWidget>
 
 class TrainerCardWidget extends StatefulWidget {
   final TrainerCard trainer;
+  final Function(int)? onTabChange;
 
-  const TrainerCardWidget({super.key, required this.trainer});
+  const TrainerCardWidget({super.key, required this.trainer, this.onTabChange});
 
   @override
   State<TrainerCardWidget> createState() => _TrainerCardWidgetState();
@@ -495,9 +500,10 @@ class _TrainerCardWidgetState extends State<TrainerCardWidget>
             onTapUp: (_) {
               setState(() => _isPressed = false);
               _controller.reverse();
-              // Navigate to bookings tab
-              Navigator.pop(context); // Close chat
-              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              // Navigate to bookings tab (index 1 - BookingsTab)
+              if (widget.onTabChange != null) {
+                widget.onTabChange!(1);
+              }
             },
             onTapCancel: () {
               setState(() => _isPressed = false);

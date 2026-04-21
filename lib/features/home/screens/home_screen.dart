@@ -52,7 +52,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 ],
               ),
               // AI Chat Popup
-              const AiChatPopup(),
+              AiChatPopup(onTabChange: (index) => _tabNotifier.value = index),
             ],
           ),
           bottomNavigationBar: Container(

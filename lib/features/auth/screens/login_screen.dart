@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
+import '../widgets/social_login_buttons.dart';
 import '../../../features/trainer/shell/trainer_shell.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -165,6 +166,10 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
                           onPressed: p.isLoading ? null : _submit,
                         ),
                       ),
+                      const SizedBox(height: 24),
+
+                      // Social Login Buttons
+                      const SocialLoginButtons(),
                       const SizedBox(height: 24),
 
                       // Register link

@@ -5,7 +5,9 @@ import 'chat_bubble.dart';
 import 'chat_cards.dart';
 
 class AiChatPopup extends StatefulWidget {
-  const AiChatPopup({super.key});
+  final Function(int)? onTabChange;
+  
+  const AiChatPopup({super.key, this.onTabChange});
 
   @override
   State<AiChatPopup> createState() => _AiChatPopupState();
@@ -74,6 +76,15 @@ class _AiChatPopupState extends State<AiChatPopup>
       _animationController.forward();
     } else {
       _animationController.reverse();
+    }
+  }
+
+  void _handleTabChange(int index) {
+    // Close popup first
+    _togglePopup();
+    // Then change tab
+    if (widget.onTabChange != null) {
+      widget.onTabChange!(index);
     }
   }
 
@@ -189,28 +200,32 @@ class _AiChatPopupState extends State<AiChatPopup>
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     const Icon(
-                      Icons.smart_toy,
+                      Icons.psychology,
                       color: Colors.white,
                       size: 28,
                     ),
                     Positioned(
-                      top: -2,
-                      right: -2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white, width: 1),
-                        ),
-                        child: const Text(
-                          'AI',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
+                      top: 0,
+                      right: 0,
+                      child: Transform.translate(
+                        offset: const Offset(8, -8), // (x, y)
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1),
+                          ),
+                          child: const Text(
+                            'Power AI',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 6,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -431,7 +446,10 @@ class _AiChatPopupState extends State<AiChatPopup>
                                               curve: Curves.easeOutBack,
                                               child: Padding(
                                                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                child: ServiceCardWidget(service: service),
+                                                child: ServiceCardWidget(
+                                                  service: service,
+                                                  onTabChange: _handleTabChange,
+                                                ),
                                               ),
                                             );
                                           }),
@@ -468,7 +486,10 @@ class _AiChatPopupState extends State<AiChatPopup>
                                               curve: Curves.easeOutBack,
                                               child: Padding(
                                                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                child: MembershipCardWidget(membership: membership),
+                                                child: MembershipCardWidget(
+                                                  membership: membership,
+                                                  onTabChange: _handleTabChange,
+                                                ),
                                               ),
                                             );
                                           }),
@@ -505,7 +526,10 @@ class _AiChatPopupState extends State<AiChatPopup>
                                               curve: Curves.easeOutBack,
                                               child: Padding(
                                                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                child: TrainerCardWidget(trainer: trainer),
+                                                child: TrainerCardWidget(
+                                                  trainer: trainer,
+                                                  onTabChange: _handleTabChange,
+                                                ),
                                               ),
                                             );
                                           }),
@@ -543,6 +567,8 @@ class _AiChatPopupState extends State<AiChatPopup>
                                       ),
                                       child: TextField(
                                         controller: _textController,
+                                        keyboardType: TextInputType.multiline,
+                                        textCapitalization: TextCapitalization.sentences,
                                         decoration: const InputDecoration(
                                           hintText: 'Type a message...',
                                           border: InputBorder.none,

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "677788921135",
+    "project_id": "project04-1774e",
+    "storage_bucket": "project04-1774e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:677788921135:android:4a111599477fb0c8efc5da",
+        "android_client_info": {
+          "package_name": "com.example.powergym_mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCl0Zz6Klg4xInX2xi5lLydEfHVOzBZO84"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

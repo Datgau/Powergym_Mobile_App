@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PowerGym</string>
+
+    <string name="facebook_app_id">3191469031295763</string>
+    <string name="fb_login_protocol_scheme">fb3191469031295763</string>
+    <string name="facebook_client_token">YOUR_FACEBOOK_CLIENT_TOKEN</string>
+    
+    <!-- 
+    Để lấy Client Token:
+    1. Vào Facebook Developer Console
+    2. Settings > Advanced
+    3. Sao chép Client Token và thay thế YOUR_FACEBOOK_CLIENT_TOKEN
+    -->
+</resources>

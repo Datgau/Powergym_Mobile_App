@@ -47,6 +47,21 @@ class ResendOtpRequest {
   Map<String, dynamic> toJson() => {'email': email};
 }
 
+class OAuthLoginRequest {
+  final String provider;
+  final String accessToken;
+
+  const OAuthLoginRequest({
+    required this.provider,
+    required this.accessToken,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'provider': provider,
+        'accessToken': accessToken,
+      };
+}
+
 // ─── Response models ──────────────────────────────────────────────────────────
 
 class LoginResponse {

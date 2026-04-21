@@ -36,4 +36,12 @@ class AuthApiService {
     );
     return ApiResponse.fromJson(res.data as Map<String, dynamic>, null);
   }
+
+  Future<ApiResponse<LoginResponse>> oauthLogin(OAuthLoginRequest req) async {
+    final res = await Api.public.post('/auth/oauth/login', data: req.toJson());
+    return ApiResponse.fromJson(
+      res.data as Map<String, dynamic>,
+      (d) => LoginResponse.fromJson(d as Map<String, dynamic>),
+    );
+  }
 }

@@ -178,6 +178,53 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // ─── OAuth Login ──────────────────────────────────────────────────────────
+
+  Future<bool> oauthLogin(String provider, String accessToken) async {
+    _setLoading();
+    try {
+      final res = await _api.oauthLogin(
+        OAuthLoginRequest(provider: provider, accessToken: accessToken),
+      );
+
+      if (!res.success || res.data == null) {
+        _setError(res.message.isNotEmpty ? res.message : 'OAuth login failed.');
+        return false;
+      }
+
+      final user = res.data!;
+
+      // Block ADMIN and STAFF from mobile app
+      if (!_allowedRoles.contains(user.role.toUpperCase())) {
+        _setError('This app is for members and trainers only.');
+        return false;
+      }
+
+      await _storage.saveSession(
+        accessToken: user.accessToken,
+        userId: user.id.toString(),
+        role: user.role,
+        fullName: user.fullName,
+        email: user.email,
+        avatar: user.avatar,
+        refreshToken: user.refreshToken,
+      );
+
+      // Cache tokens in memory for immediate use
+      Api.cacheTokens(
+        accessToken: user.accessToken,
+        refreshToken: user.refreshToken,
+      );
+
+      _currentUser = user;
+      _setSuccess();
+      return true;
+    } catch (e) {
+      _setError(Api.parseError(e));
+      return false;
+    }
+  }
+
   // ─── Logout ───────────────────────────────────────────────────────────────
 
   Future<void> logout() async {
