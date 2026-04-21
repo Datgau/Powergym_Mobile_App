@@ -60,13 +60,9 @@ class SocialLoginService {
     await _googleSignIn.signOut();
   }
 
-  // ─── Facebook Sign In ─────────────────────────────────────────────────────
-
   static Future<FacebookSignInResult?> signInWithFacebook() async {
     try {
-      // Kiểm tra xem Facebook đã được cấu hình chưa
-      // Nếu chưa có App ID thật, trả về lỗi thân thiện
-      throw Exception('Facebook Login chưa được cấu hình. Vui lòng làm theo hướng dẫn trong FACEBOOK_SETUP.md để thiết lập Facebook App ID và Client Token.');
+      throw Exception('Facebook Login chưa được cấu hình. Thiếu token.');
       
       // Code bên dưới sẽ được kích hoạt sau khi setup Facebook
       /*
@@ -99,10 +95,9 @@ class SocialLoginService {
       );
       */
     } catch (e) {
-      // Kiểm tra nếu là lỗi Facebook SDK chưa được khởi tạo
-      if (e.toString().contains('SDK has not been initialized') || 
+      if (e.toString().contains('SDK has not been initialized') ||
           e.toString().contains('FacebookSdk.sdkInitialize')) {
-        throw Exception('Facebook chưa được cấu hình. Vui lòng xem hướng dẫn trong FACEBOOK_SETUP.md');
+        throw Exception('Facebook chưa được cấu hình.');
       }
       throw Exception('Facebook Sign In failed: ${e.toString()}');
     }
@@ -112,8 +107,6 @@ class SocialLoginService {
     await FacebookAuth.instance.logOut();
   }
 }
-
-// ─── Result Models ────────────────────────────────────────────────────────────
 
 class GoogleSignInResult {
   final String accessToken;
